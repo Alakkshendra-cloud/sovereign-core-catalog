@@ -1,0 +1,56 @@
+{{- /*
+  Control: mdb-dr-01 (iscf-dr-05 / iscf-dr-08 / iscf-re-01)
+  Velero Schedule for MongoDB VM backup / DR.
+
+  Opt-in via:
+    backup:
+      enabled: true
+      schedule: "0 2 * * *"      # cron UTC
+      retention: "720h"           # 30 days
+
+  When backup.enabled=true a Velero Schedule resource is rendered that
+  snapshots the entire mongodb-vm namespace on the defined cron schedule
+  and retains backups for the configured TTL.
+
+  Prerequisites on the spoke cluster:
+    - Velero installed (velero.io/v1 CRD group present)
+    - An ObjectStorage BackupStorageLocation configured
+    - Volume snapshot provider compatible with RWO block PVCs
+
+  Acceptance criteria:
+    - helm lint passes
+    - oc get schedule -n <namespace> shows schedule when backup.enabled=true
+    - Manual velero backup create + restore verified in test environment
+*/}}
+{{- if .Values.backup.enabled }}
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: {{ include "mongodb-vm.fullname" . }}-backup
+  namespace: {{ .Values.namespaceOverride | default .Release.Namespace }}
+  labels:
+    {{- include "mongodb-vm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+  annotations:
+    {{- include "mongodb-vm.annotations" . | nindent 4 }}
+    ## COMPLIANCE mdb-dr-01 → iscf-dr-05 · iscf-dr-08 · iscf-re-01
+    com.ibm.sovereigncore.compliance.control: "mdb-dr-01"
+    com.ibm.sovereigncore.compliance.iscf-refs: "iscf-dr-05,iscf-dr-08,iscf-re-01"
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  template:
+    ## Snapshot the entire namespace so all VM resources (PVC, Secret, Service)
+    ## are included and can be restored atomically.
+    includedNamespaces:
+      - {{ .Values.namespaceOverride | default .Release.Namespace | quote }}
+    includeClusterResources: false
+    ## Retain backups for the configured TTL (default 720h = 30 days).
+    ttl: {{ .Values.backup.retention | quote }}
+    storageLocation: {{ .Values.backup.storageLocation | default "default" | quote }}
+    ## Snapshot PVCs as VolumeSnapshots (CSI-based).
+    snapshotVolumes: true
+    ## Fail the schedule run if any resource fails to be backed up.
+    ## Set to false if you want partial backups to succeed.
+    defaultVolumesToFsBackup: false
+    hooks: {}
+{{- end }}

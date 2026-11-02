@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "clusterTarget":                                  {"type": "string"},
+    "namespace":                                      {"type": "string"},
+    "instanceName":                                   {"type": "string"},
+
+    "diskImage.sourceContainerDisk":                  {"type": "string"},
+    "diskImage.sourceURL":                            {"type": "string"},
+    "diskImage.sourcePVCName":                        {"type": "string"},
+    "diskImage.sourcePVCNamespace":                   {"type": "string"},
+    "diskImage.pullSecret":                           {"type": "string"},
+    "diskImage.certConfigMap":                        {"type": "string"},
+    "diskImage.storageClassName":                     {"type": "string"},
+    "diskImage.diskSizeGi":                           {"type": "integer"},
+
+    "vm.cpuCores":                                    {"type": "integer"},
+    "vm.memoryGi":                                    {"type": "integer"},
+
+    "mongodb.databaseName":                           {"type": "string"},
+    "mongodb.databaseUser":                           {"type": "string"},
+    "mongodb.keyFile":                                {"type": "string"},
+
+    "ha.enabled":                                     {"type": "boolean"},
+    "ha.replicaCount":                                {"type": "integer"},
+    "ha.replicaSetName":                              {"type": "string"},
+    "ha.port":                                        {"type": "integer"},
+
+    "vip.enabled":                                    {"type": "boolean"},
+    "vip.lb_type":                                    {"type": "string"},
+    "vip.nodePort":                                   {"type": "integer"},
+    "vip.metallbAddressPool":                         {"type": "string"},
+    "vip.port":                                       {"type": "integer"},
+    "vip.probe.periodSeconds":                        {"type": "integer"},
+    "vip.probe.failureThreshold":                     {"type": "integer"},
+    "vip.probe.successThreshold":                     {"type": "integer"},
+    "vip.probe.timeoutSeconds":                       {"type": "integer"},
+
+    "networkPolicy.enabled":                          {"type": "boolean"},
+    "serviceAccount.enabled":                         {"type": "boolean"},
+    "governance.namespaceLabel.enabled":             {"type": "boolean"},
+    "governance.namespaceLabel.controlOwner":        {"type": "string"},
+    "network.blockExternalServices":                  {"type": "boolean"},
+
+    "compliance.enableEncryption":                    {"type": "boolean"},
+    "compliance.auditLog.enabled":                    {"type": "boolean"},
+    "compliance.auditLog.path":                       {"type": "string"},
+    "compliance.auditLog.auditAuthorizationSuccess":  {"type": "boolean"},
+
+    "logging.rsyslog.enabled":                        {"type": "boolean"},
+    "logging.rsyslog.forwarding.enabled":             {"type": "boolean"},
+    "logging.rsyslog.forwarding.host":                {"type": "string"},
+    "logging.rsyslog.forwarding.port":                {"type": "integer"},
+    "logging.rsyslog.forwarding.protocol":            {"type": "string"},
+    "logging.rsyslog.forwarding.format":              {"type": "string"},
+    "logging.rsyslog.fileMonitoring.mongodLog.enabled":  {"type": "boolean"},
+    "logging.rsyslog.fileMonitoring.mongodLog.tag":      {"type": "string"},
+    "logging.rsyslog.fileMonitoring.mongodLog.facility": {"type": "string"},
+    "logging.rsyslog.fileMonitoring.mongodLog.severity": {"type": "string"},
+    "logging.rsyslog.fileMonitoring.auditLog.enabled":   {"type": "boolean"},
+    "logging.rsyslog.fileMonitoring.auditLog.path":      {"type": "string"},
+    "logging.rsyslog.fileMonitoring.auditLog.tag":       {"type": "string"},
+    "logging.rsyslog.fileMonitoring.auditLog.facility":  {"type": "string"},
+    "logging.rsyslog.fileMonitoring.auditLog.severity":  {"type": "string"},
+    "logging.rsyslog.rateLimit.intervalSeconds":         {"type": "integer"},
+    "logging.rsyslog.rateLimit.burstCount":              {"type": "integer"},
+    "logging.rsyslog.customConf":                     {"type": "string"},
+
+    "logging.fluentbit.enabled":                      {"type": "boolean"},
+    "logging.fluentbit.siemEndpoint":                 {"type": "string"},
+    "logging.fluentbit.siemPort":                     {"type": "integer"},
+    "logging.fluentbit.tlsEnabled":                   {"type": "boolean"},
+
+    "backup.enabled":                                 {"type": "boolean"},
+    "backup.schedule":                                {"type": "string"},
+    "backup.retention":                               {"type": "string"},
+    "backup.storageLocation":                         {"type": "string"},
+
+    "monitoring.enabled":                             {"type": "boolean"},
+    "monitoring.scrapeInterval":                      {"type": "string"},
+    "monitoring.alertPendingDuration":                {"type": "string"},
+
+    "ntp.server":                                     {"type": "string"},
+    "sshAuthorizedKeys":                              {"type": "string"},
+    "concertSSHKeySecret":                            {"type": "string"},
+    "argocd.grantAdminRole":                          {"type": "boolean"}
+  },
+  "required": [
+    "clusterTarget",
+    "namespace",
+    "instanceName",
+    "diskImage.sourceContainerDisk",
+    "mongodb.databaseName",
+    "mongodb.databaseUser",
+    "ha.enabled"
+  ]
+}

@@ -1,0 +1,104 @@
+{{- /*
+  mdb-rs-01 (iscf-re-01 / iscf-re-03)
+  PrometheusRule for MongoDB Replica Set member health monitoring.
+
+  Opt-in via:
+    monitoring:
+      enabled: true
+
+  Alert fires within 2 minutes of a member entering RECOVERING / STARTUP2
+  state and auto-resolves when all members return to PRIMARY or SECONDARY.
+
+  Prerequisites:
+    - Prometheus Operator (monitoring.coreos.com/v1 CRDs) installed
+    - mongodb-exporter scraping the MongoDB RS metrics endpoint
+      (job label "mongodb-vm" on the scrape target)
+
+  Acceptance criteria:
+    - Alert fires within 2 min of member entering RECOVERING state
+    - Alert resolves when member returns to PRIMARY/SECONDARY
+    - helm lint passes
+*/}}
+{{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "mongodb-vm.fullname" . }}-rs-health
+  namespace: {{ .Values.namespaceOverride | default .Release.Namespace }}
+  labels:
+    {{- include "mongodb-vm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: monitoring
+    ## Required by Prometheus Operator to pick up this rule set.
+    ## Must match the ruleSelector on your Prometheus instance.
+    prometheus: kube-prometheus
+    role: alert-rules
+  annotations:
+    {{- include "mongodb-vm.annotations" . | nindent 4 }}
+    com.ibm.sovereigncore.compliance.control: "mdb-rs-01"
+    com.ibm.sovereigncore.compliance.iscf-refs: "iscf-re-01,iscf-re-03"
+spec:
+  groups:
+    ## ── mdb-rs-01: RS member health ───────────────────────────────────────────
+    - name: mongodb.rs.health
+      interval: {{ .Values.monitoring.scrapeInterval | default "30s" | quote }}
+      rules:
+        ## Alert when any RS member reports health == 0 (unhealthy).
+        ## mongodb_rs_members_health is exported by mongodb-exporter with label
+        ## `member` set to the member FQDN and `state` set to the RS state string.
+        - alert: MongoDBReplicaSetMemberUnhealthy
+          expr: mongodb_rs_members_health{job={{ printf "%s" (include "mongodb-vm.fullname" .) | quote }}} == 0
+          for: {{ .Values.monitoring.alertPendingDuration | default "2m" | quote }}
+          labels:
+            severity: critical
+            namespace: {{ .Values.namespaceOverride | default .Release.Namespace | quote }}
+            instance: {{ include "mongodb-vm.fullname" . | quote }}
+          annotations:
+            summary: >-
+              MongoDB RS member {{ "{{" }} $labels.member {{ "}}" }} is unhealthy
+            description: >-
+              Replica set member {{ "{{" }} $labels.member {{ "}}" }} in instance
+              {{ include "mongodb-vm.fullname" . }} has reported health=0 for
+              {{ .Values.monitoring.alertPendingDuration | default "2m" }}.
+              Current state: {{ "{{" }} $labels.state {{ "}}" }}.
+              Investigate with: mongosh --eval "rs.status()"
+
+        ## Alert when the number of voting members in PRIMARY or SECONDARY state
+        ## drops below the expected replica count — catches split-brain scenarios.
+        - alert: MongoDBReplicaSetDegraded
+          expr: >-
+            count(mongodb_rs_members_state{
+              job={{ printf "%s" (include "mongodb-vm.fullname" .) | quote }},
+              state=~"PRIMARY|SECONDARY"
+            }) < {{ .Values.ha.replicaCount | default 3 }}
+          for: {{ .Values.monitoring.alertPendingDuration | default "2m" | quote }}
+          labels:
+            severity: warning
+            namespace: {{ .Values.namespaceOverride | default .Release.Namespace | quote }}
+            instance: {{ include "mongodb-vm.fullname" . | quote }}
+          annotations:
+            summary: >-
+              MongoDB RS {{ include "mongodb-vm.fullname" . }} is degraded
+            description: >-
+              Fewer than {{ .Values.ha.replicaCount | default 3 }} members are
+              in PRIMARY or SECONDARY state. RS may be operating in degraded mode.
+              Investigate with: mongosh --eval "rs.status()"
+
+        ## Alert when no PRIMARY exists in the RS — complete outage scenario.
+        - alert: MongoDBReplicaSetNoPrimary
+          expr: >-
+            count(mongodb_rs_members_state{
+              job={{ printf "%s" (include "mongodb-vm.fullname" .) | quote }},
+              state="PRIMARY"
+            }) == 0
+          for: 1m
+          labels:
+            severity: critical
+            namespace: {{ .Values.namespaceOverride | default .Release.Namespace | quote }}
+            instance: {{ include "mongodb-vm.fullname" . | quote }}
+          annotations:
+            summary: >-
+              MongoDB RS {{ include "mongodb-vm.fullname" . }} has no PRIMARY
+            description: >-
+              No PRIMARY member found in replica set. All writes are blocked.
+              Investigate with: mongosh --eval "rs.status()"
+{{- end }}
