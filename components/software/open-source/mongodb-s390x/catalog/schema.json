@@ -27,6 +27,7 @@
     "vip.enabled":                            {"type": "boolean"},
     "vip.lb_type":                            {"type": "string"},
     "vip.nodePort":                           {"type": "integer"},
+    "vip.metallbAddressPool":                 {"type": "string"},
 
     "networkPolicy.enabled":                  {"type": "boolean"},
     "serviceAccount.enabled":                 {"type": "boolean"},
