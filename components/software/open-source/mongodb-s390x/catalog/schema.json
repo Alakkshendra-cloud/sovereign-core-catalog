@@ -52,14 +52,8 @@
 
     "backup.enabled":                         {"type": "boolean"},
     "backup.schedule":                        {"type": "string"},
-    "backup.retention":                       {"type": "string"},
 
     "monitoring.enabled":                     {"type": "boolean"},
-    "monitoring.scrapeInterval":              {"type": "string"},
-
-    "ntp.server":                             {"type": "string"},
-    "sshAuthorizedKeys":                      {"type": "string"},
-    "concertSSHKeySecret":                    {"type": "string"},
     "argocd.grantAdminRole":                  {"type": "boolean"}
   },
   "required": [
