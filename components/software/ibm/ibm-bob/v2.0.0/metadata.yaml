@@ -11,9 +11,9 @@ metadata:
   industries: ["bfsi", "government", "healthcare", "energy", "sovereign_ai"]
   intendedUsers: ["Software developers", "Platform engineers", "Enterprise architects", "Security and compliance teams", "Managed service providers"]
   version: "2.0.0"
-  lifecycleStatus: "draft"
-  storefrontVisibility: "private"
-  availabilityState: "technical_assets_available"
+  lifecycleStatus: "approved"
+  storefrontVisibility: "public"
+  availabilityState: "available_central_it"
 spec:
   openSource:
     enabled: false
@@ -24,7 +24,8 @@ spec:
     ultimateParentCompanyHQ: "USA"
   architecture:
     format: "Kubernetes"
-    airgapReady: false
+    airgapReady: true
+    dependencyEndpoints: []
     storage:
       csiAccessModes: ["ReadWriteOnce", "ReadWriteMany"]
   security:
