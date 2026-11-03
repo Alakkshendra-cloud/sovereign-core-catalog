@@ -1,0 +1,22 @@
+apiVersion: sovereign-catalog.io/v1alpha1
+kind: ServiceProfile
+metadata:
+  companyRef: "companies/tech-mahindra"
+  name: "Tech Mahindra Orion + DSLM"
+  shortDescription: "Enterprise agentic AI platform and service management platform that accelerates deployment, operations, and compliance at scale."
+  fullDescription: "TechM Orion is an enterprise-grade agentic AI platform that moves organizations from isolated AI experiments to governed, production-ready AI. It covers the full AI lifecycle, from agent creation and RAG configuration to evaluation, deployment, monitoring, and continuous optimization, with governance and integration built in. The platform is backed by NVIDIA and secured by TechM VerifAI. Example use cases include customer service, DevOps, human resources, finance, healthcare and life sciences, retail, supply chain, manufacturing, and communications."
+  sovereignCoreRelevance: "Provides a sovereign-ready service management and agentic AI platform that speeds up deployment, operations, and compliance for Sovereign Core customers."
+  industries: ["bfsi", "healthcare", "telco"] # Finance, healthcare and life sciences, and communications. Retail, supply chain, and manufacturing have no catalog code.
+  intendedUsers: ["AI engineers", "Platform engineers", "Business stakeholders", "Technology stakeholders"]
+  availabilityState: "discoverable_only"
+  lifecycleStatus: "approved"
+  storefrontVisibility: "public"
+spec:
+  serviceType: "ManagedOperations"
+  additionalServiceTypes:
+    - "SystemIntegration"
+  sovereignty:
+    corporateHQ: "India"
+    ultimateParentCompanyHQ: "India"
+  links:
+    productPageUrl: "https://www.techmahindra.com/platform/techm-orion/"
