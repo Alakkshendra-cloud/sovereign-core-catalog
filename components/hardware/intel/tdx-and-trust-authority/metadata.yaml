@@ -1,0 +1,25 @@
+apiVersion: sovereign-catalog.io/v1alpha1
+kind: HardwareProfile
+metadata:
+  companyRef: "companies/intel"
+  vendor: "Intel Corporation"
+  product: "Intel Trust Domain Extensions (TDX) and Intel Trust Authority"
+  shortDescription: "Hardware-rooted confidential computing that keeps data, models, and AI workloads protected at all times."
+  fullDescription: "Intel TDX is a hardware-based trusted execution environment that runs workloads in hardware-isolated virtual machines called trust domains. It protects the confidentiality and integrity of data in memory, so cloud providers, operators, and other tenants cannot access it, and it lets customers lift and shift existing virtual machines without code changes. Intel Trust Authority is an independent attestation service that verifies infrastructure, applications, and AI/ML workloads are running in trusted environments across cloud, edge, and on-premises deployments."
+  sovereignCoreRelevance: "Protects data, models, and AI workloads in use and gives customers independent proof that their workloads run in a trusted environment, which supports data sovereignty and control."
+  industries: ["sovereign_ai"] # Intel says only "highly regulated industries".
+  intendedUsers: ["Platform engineers", "Infrastructure teams", "Compliance officers", "AI engineers"]
+  category: "CPU"
+  availabilityState: "discoverable_only"
+  lifecycleStatus: "approved"
+  storefrontVisibility: "public"
+spec:
+  jurisdiction:
+    hq: "USA"
+  capabilities:
+    confidentialComputing:
+      supported: true
+      technology: "Intel Trust Domain Extensions (TDX)"
+  links:
+    productPageUrl: "https://www.intel.com/content/www/us/en/developer/tools/trust-domain-extensions/overview.html"
+    docsUrl: "https://www.intel.com/content/www/us/en/security/trust-authority.html"
