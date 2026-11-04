@@ -1,4 +1,4 @@
-{{- if .Values.argocd.grantAdminRole }}
+{{- if include "mongodb-vm.val" (list . "argocd.grantAdminRole") | default "true" | eq "true" }}
 ## Role — grants ArgoCD only the permissions it needs to manage this chart's resources.
 ## Scoped to the target namespace. Does NOT grant cluster-wide privileges.
 ##

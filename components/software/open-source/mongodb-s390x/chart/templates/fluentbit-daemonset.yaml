@@ -19,7 +19,11 @@
     - SIEM receives audit events within 60s of MongoDB write
     - helm lint passes
 */}}
-{{- if .Values.logging.fluentbit.enabled }}
+{{- $fluentbitEnabled := include "mongodb-vm.val" (list . "logging.fluentbit.enabled") | eq "true" }}
+{{- $siemEndpoint     := include "mongodb-vm.val" (list . "logging.fluentbit.siemEndpoint") }}
+{{- $siemPort         := include "mongodb-vm.val" (list . "logging.fluentbit.siemPort") | default "5044" }}
+{{- $tlsEnabled       := include "mongodb-vm.val" (list . "logging.fluentbit.tlsEnabled") | default "true" | eq "true" }}
+{{- if $fluentbitEnabled }}
 ---
 ## ConfigMap: Fluent-bit configuration
 apiVersion: v1
@@ -70,9 +74,9 @@ data:
     [OUTPUT]
         Name          forward
         Match         mongodb.*
-        Host          {{ .Values.logging.fluentbit.siemEndpoint | quote }}
-        Port          {{ .Values.logging.fluentbit.siemPort }}
-        {{- if .Values.logging.fluentbit.tlsEnabled }}
+        Host          {{ $siemEndpoint | quote }}
+        Port          {{ $siemPort }}
+        {{- if $tlsEnabled }}
         tls           On
         tls.verify    On
         {{- end }}

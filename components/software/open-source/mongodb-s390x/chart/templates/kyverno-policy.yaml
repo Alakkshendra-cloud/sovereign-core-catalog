@@ -32,7 +32,7 @@
     - ClusterIP VIP service deploys correctly in both modes.
     - helm lint passes in both modes.
 */ -}}
-{{- if .Values.network.blockExternalServices }}
+{{- if include "mongodb-vm.val" (list . "network.blockExternalServices") | eq "true" }}
 ---
 apiVersion: kyverno.io/v1
 kind: Policy

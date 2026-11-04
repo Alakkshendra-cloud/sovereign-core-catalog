@@ -19,7 +19,11 @@
     - Alert resolves when member returns to PRIMARY/SECONDARY
     - helm lint passes
 */}}
-{{- if .Values.monitoring.enabled }}
+{{- $monitoringEnabled := include "mongodb-vm.val" (list . "monitoring.enabled") | eq "true" }}
+{{- $scrapeInterval    := include "mongodb-vm.val" (list . "monitoring.scrapeInterval") | default "30s" }}
+{{- $alertPending      := include "mongodb-vm.val" (list . "monitoring.alertPendingDuration") | default "2m" }}
+{{- $replicaCount      := include "mongodb-vm.val" (list . "ha.replicaCount") | default "3" }}
+{{- if $monitoringEnabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -40,14 +44,14 @@ spec:
   groups:
     ## ── mdb-rs-01: RS member health ───────────────────────────────────────────
     - name: mongodb.rs.health
-      interval: {{ .Values.monitoring.scrapeInterval | default "30s" | quote }}
+      interval: {{ $scrapeInterval | quote }}
       rules:
         ## Alert when any RS member reports health == 0 (unhealthy).
         ## mongodb_rs_members_health is exported by mongodb-exporter with label
         ## `member` set to the member FQDN and `state` set to the RS state string.
         - alert: MongoDBReplicaSetMemberUnhealthy
           expr: mongodb_rs_members_health{job={{ printf "%s" (include "mongodb-vm.fullname" .) | quote }}} == 0
-          for: {{ .Values.monitoring.alertPendingDuration | default "2m" | quote }}
+          for: {{ $alertPending | quote }}
           labels:
             severity: critical
             namespace: {{ .Values.namespaceOverride | default .Release.Namespace | quote }}
@@ -58,7 +62,7 @@ spec:
             description: >-
               Replica set member {{ "{{" }} $labels.member {{ "}}" }} in instance
               {{ include "mongodb-vm.fullname" . }} has reported health=0 for
-              {{ .Values.monitoring.alertPendingDuration | default "2m" }}.
+              {{ $alertPending }}.
               Current state: {{ "{{" }} $labels.state {{ "}}" }}.
               Investigate with: mongosh --eval "rs.status()"
 
@@ -69,8 +73,8 @@ spec:
             count(mongodb_rs_members_state{
               job={{ printf "%s" (include "mongodb-vm.fullname" .) | quote }},
               state=~"PRIMARY|SECONDARY"
-            }) < {{ .Values.ha.replicaCount | default 3 }}
-          for: {{ .Values.monitoring.alertPendingDuration | default "2m" | quote }}
+            }) < {{ $replicaCount }}
+          for: {{ $alertPending | quote }}
           labels:
             severity: warning
             namespace: {{ .Values.namespaceOverride | default .Release.Namespace | quote }}
