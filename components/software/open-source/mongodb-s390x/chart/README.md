@@ -2,6 +2,13 @@
 
 Deploys a MongoDB Enterprise Advanced instance as an OpenShift Virtualization VirtualMachine on IBM Z and LinuxONE (**s390x**) nodes using a bootc-built ContainerDisk or PVC source image. Requires an OpenShift cluster with OpenShift Virtualization (KubeVirt), Containerized Data Importer (CDI), s390x worker nodes, and a `ReadWriteOnce`-capable block StorageClass.
 
+### Cluster Prerequisites for Optional Features
+- **Backup (`backup.enabled: true`)**: Requires the **Red Hat OADP (Velero)** operator installed on the target spoke cluster before cluster import.
+- **External VIP (`vip.enabled: true`, `vip.lb_type: "external"`) vs Kyverno (`network.blockExternalServices: true`)**:
+  - `network.blockExternalServices: true` deploys a Kyverno policy that enforces `ClusterIP`-only services (`mdb-net-03`).
+  - If `network.blockExternalServices: true` is enabled, Kyverno must be installed on the spoke cluster, and `vip.enabled` must be `false`.
+  - If using MetalLB external VIP (`vip.enabled: true`), keep `network.blockExternalServices: false` (default) to avoid policy rejection.
+
 The chart is deployed by the Sovereign Core catalog broker (`byop-broker`); it is not installed directly with Helm. Packaging and push instructions are in the component README (`mongodb-s390x/README.md` in the catalog repository).
 
 ---

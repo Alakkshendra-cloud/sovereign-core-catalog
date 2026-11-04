@@ -43,6 +43,20 @@ mongodb-s390x/
 
 ---
 
+## Cluster Prerequisites & Spoke Preparation
+
+Before importing the spoke cluster into the Sovereign Core control plane, ensure the target OpenShift s390x cluster has the required operators installed for any optional features you intend to enable:
+
+| Feature | Chart Value / Schema Parameter | Cluster Prerequisite | Notes |
+|---|---|---|---|
+| **VM Workloads & Storage** | Core / mandatory | OpenShift Virtualization (KubeVirt), CDI, and Ceph RBD Block StorageClass | Base prerequisite for deploying s390x VMs. |
+| **Backup & Snapshot Schedules** | `backup.enabled: true` | **Red Hat OADP (Velero)** operator installed on spoke cluster | **Install OADP on the spoke cluster BEFORE importing the cluster into Sovereign Core.** Cluster import applies control-plane pull secret and ITMS/IDMS mirror policies; installing OADP first ensures operator bundle images from `registry.redhat.io` pull cleanly. |
+| **MetalLB VIP LoadBalancer** | `vip.enabled: true`<br>`vip.lb_type: "external"` | MetalLB Operator configured with `IPAddressPool` | Provides primary-only failover routing via KubeVirt readiness probe. |
+| **External Service Blocking** | `network.blockExternalServices: true` | **Kyverno** policy engine installed on spoke cluster | **Mutual Exclusivity:** Kyverno policy enforces `ClusterIP`-only services (`mdb-net-03`). If `network.blockExternalServices: true` is enabled, `vip.enabled` must be `false` (or `vip.lb_type` set to internal `ClusterIP`). If using MetalLB external VIP (`vip.enabled: true`), keep `network.blockExternalServices: false` (default). |
+| **Prometheus Alerting** | `monitoring.enabled: true` | OpenShift Monitoring / User Workload Monitoring | Evaluates `mongodb_rs_members_health` rules against embedded `mongodb-exporter`. |
+
+---
+
 ## Provisioning via the Sovereign Core catalog
 
 The listing in `catalog/` defines the `MongoDB Enterprise Advanced VM s390x` service. Provisioning parameters are defined in [`catalog/schema.json`](catalog/schema.json):
@@ -58,10 +72,15 @@ The listing in `catalog/` defines the `MongoDB Enterprise Advanced VM s390x` ser
 | `ha.enabled` | yes | Enable 3-member Replica Set High Availability (default `false`) |
 | `ha.replicaCount` | no | Number of replica set members (default `3`) |
 | `vip.enabled` | no | Enable primary-only VIP routing (default `false`) |
+| `vip.lb_type` | no | VIP service type: `local` (NodePort) or `external` (MetalLB LoadBalancer) |
+| `vip.metallbAddressPool` | no | MetalLB IPAddressPool name (required when `vip.lb_type: external`) |
+| `network.blockExternalServices` | no | Enable Kyverno policy blocking NodePort/LoadBalancer (default `false`, requires Kyverno) |
 | `compliance.enableEncryption` | no | Enable WiredTiger encryption-at-rest (default `false`) |
 | `compliance.auditLog.enabled` | no | Enable JSON audit logging in mongod.conf (default `false`) |
 | `logging.rsyslog.enabled` | no | Enable rsyslog drop-in configuration in VM guest (default `false`) |
-| `backup.enabled` | no | Enable Velero Schedule for VM snapshot backup (default `false`) |
+| `logging.fluentbit.enabled` | no | Deploy Fluent-bit DaemonSet for log collection and shipping (default `false`) |
+| `backup.enabled` | no | Enable Velero Schedule for VM snapshot backup (default `false`, requires OADP) |
+| `monitoring.enabled` | no | Enable PrometheusRule alerting for Replica Set health (default `false`) |
 
 `template/values.yaml.tmpl` maps these parameters to chart values when the broker deploys the chart. Broker behaviour to be aware of:
 
