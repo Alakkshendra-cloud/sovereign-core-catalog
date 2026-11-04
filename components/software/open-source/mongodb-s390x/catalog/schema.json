@@ -10,6 +10,7 @@
     "diskImage.sourceURL":                    {"type": "string"},
     "diskImage.sourcePVCName":                {"type": "string"},
     "diskImage.pullSecret":                   {"type": "string"},
+    "diskImage.certConfigMap":                {"type": "string"},
     "diskImage.storageClassName":             {"type": "string"},
     "diskImage.diskSizeGi":                   {"type": "integer"},
 
