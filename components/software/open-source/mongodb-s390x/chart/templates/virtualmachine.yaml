@@ -85,6 +85,7 @@ spec:
             - labelSelector:
                 matchLabels:
                   app.kubernetes.io/instance: {{ include "mongodb-vm.fullname" $root }}
+                  app.kubernetes.io/name: {{ include "mongodb-vm.name" $root }}
               topologyKey: kubernetes.io/hostname
       ## Readiness probe — checks that mongod is running and accepting connections.
       ## TCP socket check on port 27017 allows all replica set members (Primary + Secondaries)
