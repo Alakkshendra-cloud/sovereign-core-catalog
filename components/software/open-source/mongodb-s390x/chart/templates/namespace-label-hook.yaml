@@ -134,8 +134,9 @@ spec:
             - |
               oc label namespace "$(NAMESPACE)" \
                 "sovereignty/control-owner={{ .Values.governance.namespaceLabel.controlOwner }}" \
+                "openshift.io/user-monitoring=true" \
                 --overwrite
-              echo "mdb-gov-01: namespace $(NAMESPACE) labelled sovereignty/control-owner={{ .Values.governance.namespaceLabel.controlOwner }}"
+              echo "mdb-gov-01: namespace $(NAMESPACE) labelled sovereignty/control-owner={{ .Values.governance.namespaceLabel.controlOwner }} openshift.io/user-monitoring=true"
           env:
             - name: NAMESPACE
               valueFrom:

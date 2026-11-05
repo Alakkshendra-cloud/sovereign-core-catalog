@@ -86,22 +86,16 @@ spec:
                 matchLabels:
                   app.kubernetes.io/instance: {{ include "mongodb-vm.fullname" $root }}
               topologyKey: kubernetes.io/hostname
-      {{- if include "mongodb-vm.val" (list $root "vip.enabled") | eq "true" }}
-      ## Readiness probe — primary-only VIP endpoint selection.
-      ## httpGet is supported by KubeVirt at this level (exec is not).
-      ## The probe HTTP server runs inside the VM guest as a systemd service
-      ## (mongo-primary-probe.service) started by cloud-init on first-boot.
-      ## It returns 200 when this mongod is RS primary, 503 otherwise.
+      ## Readiness probe — checks that mongod is running and accepting connections.
+      ## TCP socket check on port 27017 allows all replica set members (Primary + Secondaries)
+      ## to report Ready (2/2 Running) ensuring ArgoCD marks the deployment Healthy & Synced.
       readinessProbe:
-        httpGet:
-          path: /health
-          port: 8080
-          scheme: HTTP
-        periodSeconds: {{ include "mongodb-vm.val" (list $root "vip.probe.periodSeconds") | default "5" | int }}
-        failureThreshold: {{ include "mongodb-vm.val" (list $root "vip.probe.failureThreshold") | default "2" | int }}
-        successThreshold: {{ include "mongodb-vm.val" (list $root "vip.probe.successThreshold") | default "2" | int }}
+        tcpSocket:
+          port: {{ include "mongodb-vm.val" (list $root "mongodb.port") | default 27017 | int }}
+        periodSeconds: {{ include "mongodb-vm.val" (list $root "vip.probe.periodSeconds") | default "10" | int }}
+        failureThreshold: {{ include "mongodb-vm.val" (list $root "vip.probe.failureThreshold") | default "3" | int }}
+        successThreshold: {{ include "mongodb-vm.val" (list $root "vip.probe.successThreshold") | default "1" | int }}
         timeoutSeconds: {{ include "mongodb-vm.val" (list $root "vip.probe.timeoutSeconds") | default "3" | int }}
-      {{- end }}
       domain:
         ## s390-ccw-virtio is mandatory for IBM Z — do NOT use q35
         machine:

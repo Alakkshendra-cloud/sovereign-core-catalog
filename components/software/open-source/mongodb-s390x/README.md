@@ -7,7 +7,7 @@ Helm chart and catalog entry for running **MongoDB Enterprise Advanced** as an O
 | | |
 |---|---|
 | Chart name | `mongodb-vm` |
-| Chart version | `1.1.31` (`chart/Chart.yaml` → `version`) |
+| Chart version | `1.1.32` (`chart/Chart.yaml` → `version`) |
 | App version | `8.0` (`chart/Chart.yaml` → `appVersion`) |
 | Container image | `quay.io/mongodb-ea-bootc/mongodb-ea-bootc-containerdisk:8.0-s390x` |
 | Workload | OCP Virt `VirtualMachine`, CDI `DataVolume`, `Secret`, `Service`, `NetworkPolicy`, `ServiceAccount` |
@@ -32,7 +32,7 @@ mongodb-s390x/
 │   ├── values-production.yaml
 │   ├── README.md              #   chart-level documentation
 │   ├── templates/
-│   └── mongodb-vm-1.1.31.tgz  # packaged chart (output of `helm package`)
+│   └── mongodb-vm-1.1.32.tgz  # packaged chart (output of `helm package`)
 ├── template/
 │   └── values.yaml.tmpl       # values template rendered by the Sovereign Core broker
 └── v8.0/
@@ -94,7 +94,7 @@ The listing in `catalog/` defines the `MongoDB Enterprise Advanced VM s390x` ser
 
 You need **Helm 3.8 or later** (for `helm push` / `helm registry login`) and credentials for the Sovereign Core Quay registry (or your chosen OCI registry).
 
-The packaged chart is at `chart/mongodb-vm-1.1.31.tgz`; its name and version derive from `chart/Chart.yaml`. Replace every `<placeholder>` with your own values. **Never commit real credentials** — pass them via environment variables or a secret store.
+The packaged chart is at `chart/mongodb-vm-1.1.32.tgz`; its name and version derive from `chart/Chart.yaml`. Replace every `<placeholder>` with your own values. **Never commit real credentials** — pass them via environment variables or a secret store.
 
 ```bash
 export REGISTRY=<quay-host>              # e.g. the Quay host of your Sovereign Core deployment
@@ -106,11 +106,11 @@ export QUAY_PASSWORD=<password-or-robot-token>
 echo "$QUAY_PASSWORD" | helm registry login "$REGISTRY" \
   --username "$QUAY_USERNAME" --password-stdin
 
-# 2. Push — Helm appends the chart name, result: oci://$REGISTRY/$NAMESPACE/mongodb-vm:1.1.31
-helm push chart/mongodb-vm-1.1.31.tgz "oci://$REGISTRY/$NAMESPACE"
+# 2. Push — Helm appends the chart name, result: oci://$REGISTRY/$NAMESPACE/mongodb-vm:1.1.32
+helm push chart/mongodb-vm-1.1.32.tgz "oci://$REGISTRY/$NAMESPACE"
 
 # 3. Verify
-helm show chart "oci://$REGISTRY/$NAMESPACE/mongodb-vm" --version 1.1.31
+helm show chart "oci://$REGISTRY/$NAMESPACE/mongodb-vm" --version 1.1.32
 ```
 
 If the registry uses a self-signed certificate, prefer `--ca-file` (run `helm push --help` for the TLS flags in your Helm version).
@@ -144,5 +144,5 @@ The repository's `scripts/import.sh` pushes charts to `oci://<QUAY_REGISTRY>/sov
 
 ## Notes
 
-- `catalog/metadata.yaml` sets `sourceRepo: oci://quay.io/mongodbhelm/mongodb-vm` and `sourceVersion: "1.1.31"`. `scripts/import.sh` pulls the chart from there, so push the chart to that location (or update `sourceRepo`) before importing the listing.
+- `catalog/metadata.yaml` sets `sourceRepo: oci://quay.io/mongodbhelm/mongodb-vm` and `sourceVersion: "1.1.32"`. `scripts/import.sh` pulls the chart from there, so push the chart to that location (or update `sourceRepo`) before importing the listing.
 - `helm lint` reports one informational message (`icon is recommended`) because `Chart.yaml` has no `icon`; it is not an error.
