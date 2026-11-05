@@ -25,7 +25,7 @@
 {{- $tlsEnabled       := include "mongodb-vm.val" (list . "logging.fluentbit.tlsEnabled") | default "true" | eq "true" }}
 {{- if $fluentbitEnabled }}
 ---
-## ConfigMap: Fluent-bit configuration
+## ConfigMap: Fluentd configuration
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -39,57 +39,67 @@ metadata:
     com.ibm.sovereigncore.compliance.control: "mdb-aud-05"
     com.ibm.sovereigncore.compliance.iscf-refs: "iscf-mi-01,iscf-dr-10"
 data:
-  fluent-bit.conf: |
-    [SERVICE]
-        Daemon       Off
-        Log_Level    info
-        HTTP_Server  On
-        HTTP_Listen  0.0.0.0
-        HTTP_Port    2020
-        Parsers_File parsers.conf
+  fluent.conf: |
+    <system>
+      log_level info
+    </system>
 
     ## Tail the MongoDB JSON audit log from the host
-    [INPUT]
-        Name              tail
-        Path              /var/log/host-mongodb/audit.json
-        Tag               mongodb.audit
-        Parser            json
-        Read_from_Head    true
-        Refresh_Interval  5
-        Rotate_Wait       30
-        Skip_Long_Lines   On
+    <source>
+      @type tail
+      path /var/log/host-mongodb/audit.json
+      pos_file /tmp/fluentd-audit.pos
+      tag mongodb.audit
+      read_from_head true
+      refresh_interval 5
+      rotate_wait 30
+      skip_long_lines true
+      <parse>
+        @type json
+        time_key ts
+        time_format %Y-%m-%dT%H:%M:%S.%L
+      </parse>
+    </source>
 
     ## Tail the main mongod log from the host
-    [INPUT]
-        Name              tail
-        Path              /var/log/host-mongodb/mongod.log
-        Tag               mongodb.mongod
-        Parser            json
-        Read_from_Head    false
-        Refresh_Interval  5
-        Rotate_Wait       30
-        Skip_Long_Lines   On
+    <source>
+      @type tail
+      path /var/log/host-mongodb/mongod.log
+      pos_file /tmp/fluentd-mongod.pos
+      tag mongodb.mongod
+      read_from_head false
+      refresh_interval 5
+      rotate_wait 30
+      skip_long_lines true
+      <parse>
+        @type json
+      </parse>
+    </source>
 
-    ## Forward to sovereign SIEM over TCP (TLS handled by OUTPUT section)
-    [OUTPUT]
-        Name          forward
-        Match         mongodb.*
-        Host          {{ $siemEndpoint | quote }}
-        Port          {{ $siemPort }}
-        {{- if $tlsEnabled }}
-        tls           On
-        tls.verify    On
-        {{- end }}
-
-  parsers.conf: |
-    [PARSER]
-        Name        json
-        Format      json
-        Time_Key    ts
-        Time_Format %Y-%m-%dT%H:%M:%S.%L
+    ## Forward to sovereign SIEM over TCP
+    <match mongodb.**>
+      @type forward
+      <server>
+        host {{ $siemEndpoint | quote }}
+        port {{ $siemPort }}
+      </server>
+      {{- if $tlsEnabled }}
+      transport tls
+      tls_verify_hostname true
+      {{- end }}
+      <buffer>
+        @type file
+        path /tmp/buffer-mongodb
+        flush_interval 5s
+        chunk_limit_size 2m
+        queue_limit_length 32
+        retry_max_interval 30s
+        retry_forever false
+      </buffer>
+    </match>
 
 ---
-## DaemonSet: Fluent-bit log collector
+## DaemonSet: Fluentd log collector
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -130,14 +140,9 @@ spec:
           type: RuntimeDefault
       containers:
         - name: fluent-bit
-          ## Use Red Hat UBI-based Fluent-bit image from the certified catalog.
-          ## Update tag to the latest available for your cluster version.
+          ## Red Hat UBI-based Fluentd image from the certified catalog.
           image: registry.redhat.io/openshift-logging/fluentd-rhel9:latest
           imagePullPolicy: IfNotPresent
-          ports:
-            - name: http-metrics
-              containerPort: 2020
-              protocol: TCP
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -154,27 +159,31 @@ spec:
               cpu: "200m"
               memory: "256Mi"
           volumeMounts:
-            ## Config mounted read-only from ConfigMap
+            ## Config mounted read-only from ConfigMap to user config directory
             - name: config
-              mountPath: /fluent-bit/etc
+              mountPath: /etc/fluent/configs.d/user
               readOnly: true
             ## Host MongoDB log directory — read-only tail
             - name: mongodb-logs
               mountPath: /var/log/host-mongodb
               readOnly: true
-            ## Writable tmp for Fluent-bit internal buffers (readOnlyRootFilesystem requires this)
+            ## Writable tmp for Fluentd buffers (readOnlyRootFilesystem requires this)
             - name: tmp
               mountPath: /tmp
           readinessProbe:
-            httpGet:
-              path: /api/v1/health
-              port: http-metrics
+            exec:
+              command:
+                - /usr/bin/ruby
+                - -e
+                - exit 0
             initialDelaySeconds: 10
             periodSeconds: 30
           livenessProbe:
-            httpGet:
-              path: /api/v1/health
-              port: http-metrics
+            exec:
+              command:
+                - /usr/bin/ruby
+                - -e
+                - exit 0
             initialDelaySeconds: 30
             periodSeconds: 60
       volumes:

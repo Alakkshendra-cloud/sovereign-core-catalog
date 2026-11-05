@@ -51,9 +51,19 @@ Before importing the spoke cluster into the Sovereign Core control plane, ensure
 |---|---|---|---|
 | **VM Workloads & Storage** | Core / mandatory | OpenShift Virtualization (KubeVirt), CDI, and Ceph RBD Block StorageClass | Base prerequisite for deploying s390x VMs. |
 | **Backup & Snapshot Schedules** | `backup.enabled: true` | **Red Hat OADP (Velero)** operator installed on spoke cluster | **Install OADP on the spoke cluster BEFORE importing the cluster into Sovereign Core.** Cluster import applies control-plane pull secret and ITMS/IDMS mirror policies; installing OADP first ensures operator bundle images from `registry.redhat.io` pull cleanly. |
-| **MetalLB VIP LoadBalancer** | `vip.enabled: true`<br>`vip.lb_type: "external"` | MetalLB Operator configured with `IPAddressPool` | Provides primary-only failover routing via KubeVirt readiness probe. |
+| **MetalLB VIP LoadBalancer** | `vip.enabled: true`<br>`vip.lb_type: "external"` | MetalLB Operator configured with `IPAddressPool` | Provides LoadBalancer VIP routing. KubeVirt `tcpSocket: 27017` probe ensures all members report Ready for clean ArgoCD sync, while MongoDB client drivers discover the replica set topology and route writes to Primary. |
 | **External Service Blocking** | `network.blockExternalServices: true` | **Kyverno** policy engine installed on spoke cluster | **Mutual Exclusivity:** Kyverno policy enforces `ClusterIP`-only services (`mdb-net-03`). If `network.blockExternalServices: true` is enabled, `vip.enabled` must be `false` (or `vip.lb_type` set to internal `ClusterIP`). If using MetalLB external VIP (`vip.enabled: true`), keep `network.blockExternalServices: false` (default). |
-| **Prometheus Alerting** | `monitoring.enabled: true` | OpenShift Monitoring / User Workload Monitoring | Evaluates `mongodb_rs_members_health` rules against embedded `mongodb-exporter`. |
+| **Prometheus Alerting** | `monitoring.enabled: true` | OpenShift Monitoring / User Workload Monitoring | Evaluates replica set member health and VM pod readiness rules (`mdb-rs-01`). The namespace label hook automatically applies `openshift.io/user-monitoring: "true"`. |
+
+### Required Container Images for Spoke Mirroring
+
+For air-gapped spoke clusters, mirror the following images into your internal Quay registry under `sovcloud/`:
+
+| Image Source | Purpose |
+|---|---|
+| `registry.redhat.io/openshift4/ose-cli:latest` | Hook jobs: namespace labeling (`mdb-gov-01`) and Concert SSH keygen (`mdb-con-01`) |
+| `registry.redhat.io/openshift-logging/fluentd-rhel9:latest` | Audit log shipper DaemonSet (`mdb-aud-05`) |
+| `quay.io/mongodb-ea-bootc/mongodb-ea-bootc-containerdisk:8.0-s390x` *(or `8.3.2.44-s390x`)* | RHEL 9 Image Mode bootable QCOW2 containerdisk for KubeVirt CDI |
 
 ---
 

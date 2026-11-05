@@ -36,16 +36,16 @@ The chart is deployed by the Sovereign Core catalog broker (`byop-broker`); it i
 | `ha.replicaSetName` | MongoDB replica set name | `rs0` |
 | `ha.port` | MongoDB listen port | `27017` |
 | `ha.headlessServiceName` | Base name for per-member headless services | `""` |
-| `vip.enabled` | Enable primary-only VIP service (HA deployments) | `false` |
+| `vip.enabled` | Enable MetalLB / NodePort VIP service for HA deployments | `false` |
 | `vip.lb_type` | VIP service type: `local` (NodePort) or `external` (LoadBalancer) | `local` |
 | `vip.nodePort` | NodePort for local VIP mode (`0` for auto-assign) | `0` |
 | `vip.metallbAddressPool` | MetalLB IPAddressPool for external VIP mode | `""` |
-| `vip.probe.periodSeconds` | Interval between primary readiness probes | `5` |
-| `vip.probe.failureThreshold` | Number of consecutive failures to mark unready | `2` |
-| `vip.probe.successThreshold` | Number of consecutive successes to mark ready | `2` |
+| `vip.probe.periodSeconds` | Interval between VM readiness probes (tcpSocket: 27017) | `10` |
+| `vip.probe.failureThreshold` | Consecutive failures before marking VM unready | `3` |
+| `vip.probe.successThreshold` | Consecutive successes before marking VM ready | `1` |
 | `vip.probe.timeoutSeconds` | Probe request timeout | `3` |
 | `networkPolicy.enabled` | Enable default-deny NetworkPolicy (mdb-net-02/04) | `true` |
-| `serviceAccount.enabled` | Enable dedicated ServiceAccount with minimal RBAC (mdb-rbac-03) | `true` |
+| `serviceAccount.enabled` | Enable dedicated ServiceAccount with minimal RBAC (mdb-rbac-03), shared by VM and Fluentbit | `true` |
 | `governance.namespaceLabel.enabled` | Enable sovereignty/control-owner namespace label hook (mdb-gov-01) | `true` |
 | `governance.namespaceLabel.controlOwner` | Control owner tag applied to namespace | `tenant` |
 | `network.blockExternalServices` | Deploy Kyverno policy blocking NodePort/LoadBalancer Services (mdb-net-03) | `false` |
