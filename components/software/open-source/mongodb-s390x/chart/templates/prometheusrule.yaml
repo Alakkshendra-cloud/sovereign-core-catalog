@@ -59,12 +59,12 @@ spec:
             instance: {{ include "mongodb-vm.fullname" . | quote }}
           annotations:
             summary: >-
-              MongoDB RS member {{ "{{" }} $labels.member | default $labels.instance {{ "}}" }} is unhealthy
+              MongoDB RS member {{ "{{" }} $labels.member {{ "}}" }} is unhealthy
             description: >-
-              Replica set member {{ "{{" }} $labels.member | default $labels.instance {{ "}}" }} in instance
+              Replica set member {{ "{{" }} $labels.member {{ "}}" }} in instance
               {{ include "mongodb-vm.fullname" . }} has reported health=0 for
               {{ $alertPending }}.
-              Current state: {{ "{{" }} $labels.state | default "UNKNOWN" {{ "}}" }}.
+              Current state: {{ "{{" }} $labels.state {{ "}}" }}.
               Investigate with: mongosh --eval "rs.status()"
 
         ## Alert when the number of voting members in PRIMARY or SECONDARY state

@@ -1,6 +1,6 @@
 sourceType: helm-registry
 sourceRepo: oci://quay.io/mongodbhelm/mongodb-vm
-sourceVersion: "1.1.32"
+sourceVersion: "1.1.33"
 name: mongodbvm
 images:
   - source: "quay.io/mongodb-ea-bootc/mongodb-ea-bootc-containerdisk:8.0-s390x"
