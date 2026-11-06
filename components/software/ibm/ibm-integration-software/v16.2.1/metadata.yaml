@@ -12,7 +12,7 @@ metadata:
   intendedUsers:
     ["Platform engineers", "Data architects", "Infrastructure teams"]
   version: "16.2.1"
-  lifecycleStatus: "draft"
+  lifecycleStatus: "approved"
   storefrontVisibility: "public"
   availabilityState: "available_central_it"
 spec:
