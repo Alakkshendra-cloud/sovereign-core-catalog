@@ -46,17 +46,17 @@ metadata:
   displayName: "<Legal entity name>"             # required
 spec:
   jurisdiction:
-    corporateHQ: "<Country/Region>"              # required — one of: "USA" | "UK" | "France" | "Germany" | "India" | "Canada" | "Australia" | "Japan"
-    ultimateParentCompanyHQ: "<Country/Region>"  # required — set same as corporateHQ if independent
+    corporateHQ: "<Country/Region>"              # required — one of: "USA" | "UK" | "France" | "Germany" | "India" | "Canada" | "Australia" | "Japan" | "Finland" | "Belgium" | "Global" ("Global" is for community/distributed organizations with no single HQ)
+    ultimateParentCompanyHQ: "<Country/Region>"  # optional — same allowed values as corporateHQ; set same as corporateHQ if independent
     registrationNumber: "<National reg. number>" # optional but strongly recommended
   contact:
     website: "https://<your-website>"            # required
     partnerEmail: "<email for catalog matters>"  # required
   certifications:                                # optional — list active or in-progress frameworks
     - framework: "<e.g. ISO-27001>"
-      status: "<Active | In Progress | Planned>"
+      status: "<Active | In Progress | Expired>"
     - framework: "<e.g. SecNumCloud>"
-      status: "<Active | In Progress | Planned>"
+      status: "<Active | In Progress | Expired>"
 ```
 
 **Jurisdiction guidance:**

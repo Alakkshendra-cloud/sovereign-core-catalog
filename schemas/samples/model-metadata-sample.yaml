@@ -141,7 +141,7 @@ spec:
   # ----------------------------------------------------------
   jurisdiction:
     # [MANDATORY] Country/region where the model vendor/publisher is headquartered
-    # Allowed values: "USA" | "UK" | "France" | "Germany" | "India" | "Canada" | "Australia" | "Japan"
+    # Allowed values: "USA" | "UK" | "France" | "Germany" | "India" | "Canada" | "Australia" | "Japan" | "Finland" | "Belgium"
     hq: "<Country/Region>"
 
     # [OPTIONAL] Country/region of the ultimate parent company

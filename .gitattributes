@@ -1,0 +1,26 @@
+# Normalize all text files to LF on checkout/commit
+* text=auto eol=lf
+
+# Shell scripts must always be LF
+*.sh text eol=lf
+
+# Data / config files
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.json text eol=lf
+
+# Source code
+*.js   text eol=lf
+*.ts   text eol=lf
+
+# Docs
+*.md   text eol=lf
+
+# Binary — never touch line endings
+*.png  binary
+*.jpg  binary
+*.gif  binary
+*.ico  binary
+*.gz   binary
+*.tar  binary
+*.zip  binary

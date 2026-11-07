@@ -54,28 +54,10 @@ properties:
           - corporateHQ
         properties:
           corporateHQ:
-            type: string
-            enum:
-              - USA
-              - UK
-              - France
-              - Germany
-              - India
-              - Canada
-              - Australia
-              - Japan
+            $ref: "https://sovereign-catalog.io/schemas/common-definitions/v1alpha1#/$defs/companyProfileCountryEnum"
             description: "Country/region where the company is legally headquartered."
           ultimateParentCompanyHQ:
-            type: string
-            enum:
-              - USA
-              - UK
-              - France
-              - Germany
-              - India
-              - Canada
-              - Australia
-              - Japan
+            $ref: "https://sovereign-catalog.io/schemas/common-definitions/v1alpha1#/$defs/companyProfileCountryEnum"
             description: "Country/region of the ultimate parent company (for ownership transparency)."
           registrationNumber:
             type: string
@@ -107,12 +89,7 @@ properties:
               type: string
               description: "Certification framework name (e.g., ISO-27001, SOC2, BSI-C5)."
             status:
-              type: string
-              enum:
-                - Active
-                - In Progress
-                - Expired
-                - Pending
+              $ref: "https://sovereign-catalog.io/schemas/common-definitions/v1alpha1#/$defs/certificationStatus"
               description: "Current status of the certification."
           additionalProperties: false
     additionalProperties: false

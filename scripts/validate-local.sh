@@ -189,7 +189,7 @@ check_required_fields() {
             fields="apiVersion kind companyRef vendor product version shortDescription fullDescription sovereignCoreRelevance category industries intendedUsers availabilityState lifecycleStatus storefrontVisibility enabled license hq format weightsRepository servingEngine"
             ;;
         ServiceProfile)
-            fields="apiVersion kind companyRef name shortDescription fullDescription sovereignCoreRelevance industries intendedUsers availabilityState lifecycleStatus storefrontVisibility serviceType corporateHQ"
+            fields="apiVersion kind companyRef name shortDescription fullDescription sovereignCoreRelevance industries intendedUsers availabilityState lifecycleStatus storefrontVisibility serviceType hq"
             ;;
         SovereignCoreHelmMapping)
             fields="apiVersion kind"
@@ -217,20 +217,16 @@ check_required_fields() {
     done
 
     # Enum checks — mirror the constraints added to the five JSON schemas.
-    # The open-source pseudo-company profile uses "Global" (no single-country HQ)
-    # and is intentionally exempt, consistent with the open-source component exemption above.
-    if echo "$meta_file" | grep -q "/open-source/"; then
-        return 0
-    fi
-    local hq_enum="USA|UK|France|Germany|India|Canada|Australia|Japan"
+    local hq_enum="USA|UK|France|Germany|India|Canada|Australia|Japan|Finland|Belgium"
+    local company_hq_enum="${hq_enum}|Global"
     case "$kind" in
-        ModelListing|SoftwareListing|HardwareProfile)
+        ModelListing|SoftwareListing|HardwareProfile|ServiceProfile)
             check_enum_field "hq"                      "$meta_file" "$hq_enum"
             check_enum_field "ultimateParentCompanyHQ"  "$meta_file" "$hq_enum"
             ;;
-        ServiceProfile|CompanyProfile)
-            check_enum_field "corporateHQ"              "$meta_file" "$hq_enum"
-            check_enum_field "ultimateParentCompanyHQ"  "$meta_file" "$hq_enum"
+        CompanyProfile)
+            check_enum_field "corporateHQ"              "$meta_file" "$company_hq_enum"
+            check_enum_field "ultimateParentCompanyHQ"  "$meta_file" "$company_hq_enum"
             ;;
     esac
 }

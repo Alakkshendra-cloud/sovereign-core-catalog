@@ -130,15 +130,14 @@ spec:
   #   - "<serviceType>"
 
   # ----------------------------------------------------------
-  # SOVEREIGNTY (mandatory block)
+  # JURISDICTION (mandatory block)
   # ----------------------------------------------------------
-  sovereignty:
+  jurisdiction:
     # [MANDATORY] Country/region where the service-delivering entity is headquartered
-    # Allowed values: "USA" | "UK" | "France" | "Germany" | "India" | "Canada" | "Australia" | "Japan"
-    corporateHQ: "<Country/Region>"
+    # Allowed values: "USA" | "UK" | "France" | "Germany" | "India" | "Canada" | "Australia" | "Japan" | "Finland" | "Belgium"
+    hq: "<Country/Region>"
 
     # [RECOMMENDED] Country/region of the ultimate parent company
-    # If independent, repeat the same value as corporateHQ
     # ultimateParentCompanyHQ: "<Country/Region>"
 
     # [RECOMMENDED] Security clearance level required for staff who access client environments

@@ -16,8 +16,8 @@ spec:
   additionalServiceTypes:
     - "ManagedOperations"
     - "AuditAndCompliance"
-  sovereignty:
-    corporateHQ: "USA"
+  jurisdiction:
+    hq: "USA"
     ultimateParentCompanyHQ: "USA"
     staffClearanceLevel: "IBM Technology Lifecycle Services staff subject to IBM's global security and background check policies; EU sovereign support available"
   certifications:

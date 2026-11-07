@@ -119,11 +119,13 @@ spec:
   #     status: "Active"
 
   # ----------------------------------------------------------
-  # JURISDICTION (mandatory block)
+  # JURISDICTION (optional block)
+  # May be omitted for software with no clear single owner
+  # (e.g. community-run open source). If present, hq is required.
   # ----------------------------------------------------------
   jurisdiction:
-    # [MANDATORY] Country/region where the product vendor is headquartered
-    # Allowed values: "USA" | "UK" | "France" | "Germany" | "India" | "Canada" | "Australia" | "Japan"
+    # [MANDATORY if block present] Country/region where the product vendor is headquartered
+    # Allowed values: "USA" | "UK" | "France" | "Germany" | "India" | "Canada" | "Australia" | "Japan" | "Finland" | "Belgium"
     hq: "<Country/Region>"
 
     # [OPTIONAL] Country/region of ultimate parent company

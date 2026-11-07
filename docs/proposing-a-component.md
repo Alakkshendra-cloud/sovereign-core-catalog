@@ -59,12 +59,13 @@ metadata:
   product: "<Product Name>"
 ```
 
-A `jurisdiction` or `sovereignty.corporateHQ` block is also required in every file. See the YAML schemas under `schemas/` for the full per-category field requirements, and the annotated starter templates under `schemas/samples/` for examples.
+A `spec.jurisdiction` block (with `hq`) is also required in every hardware, service and AI model file, and in every software file except open-source components (`spec.openSource.enabled: true`) with no clear single owner (the block may be omitted there). See the YAML schemas under `schemas/` for the full per-category field requirements, and the annotated starter templates under `schemas/samples/` for examples.
 
 #### Software listings
 
 Software listings additionally require:
 
+- `spec.jurisdiction` (with `hq`) — required for all commercial/proprietary listings; optional only when `spec.openSource.enabled: true`
 - `spec.architecture.format` — deployment target: `Kubernetes`, `VM`, or `BareMetal`
 - `spec.architecture.airgapReady` — `true` or `false`
 - `spec.deployment.type` — delivery mechanism: `Helm`, `Operator`, `Kustomize`, etc.
