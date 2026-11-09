@@ -28,4 +28,4 @@ spec:
     optionalServices:
       - "IBM Technology Lifecycle Services (TLS) Sovereign Support"
   links:
-    productPageUrl: "https://www.ibm.com/products/fusion"
+    productPageUrl: "https://www.ibm.com/products/storage-fusion"
