@@ -94,7 +94,8 @@ spec:
   template:
     metadata:
       labels:
-        {{- include "mongodb-vm.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/name: {{ include "mongodb-vm.name" . }}-keygen
+        app.kubernetes.io/instance: {{ include "mongodb-vm.fullname" . }}
         app.kubernetes.io/component: concert-keygen-hook
     spec:
       serviceAccountName: {{ include "mongodb-vm.fullname" . }}-keygen-sa

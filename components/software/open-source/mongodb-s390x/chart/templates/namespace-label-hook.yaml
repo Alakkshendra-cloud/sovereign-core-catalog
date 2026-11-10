@@ -110,7 +110,8 @@ spec:
   template:
     metadata:
       labels:
-        {{- include "mongodb-vm.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/name: {{ include "mongodb-vm.name" . }}-ns-label
+        app.kubernetes.io/instance: {{ include "mongodb-vm.fullname" . }}
         app.kubernetes.io/component: ns-label-hook
     spec:
       serviceAccountName: {{ include "mongodb-vm.fullname" . }}-ns-label-sa

@@ -29,10 +29,9 @@ mongodb-s390x/
 ├── chart/                     # Helm chart source + packaged chart
 │   ├── Chart.yaml
 │   ├── values.yaml
-│   ├── values-production.yaml
 │   ├── README.md              #   chart-level documentation
 │   ├── templates/
-│   └── mongodb-vm-1.1.34.tgz  # packaged chart (output of `helm package`)
+│   └── mongodb-vm-1.1.36.tgz  # packaged chart (output of `helm package`)
 ├── template/
 │   └── values.yaml.tmpl       # values template rendered by the Sovereign Core broker
 └── v8.0/
