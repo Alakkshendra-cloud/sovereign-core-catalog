@@ -23,11 +23,8 @@
 
     "vip.enabled":                            {"type": "boolean"},
     "vip.lb_type":                            {"type": "string"},
-    "vip.nodePort":                           {"type": "integer"},
     "vip.metallbAddressPool":                 {"type": "string"},
 
-    "networkPolicy.enabled":                  {"type": "boolean"},
-    "serviceAccount.enabled":                 {"type": "boolean"},
     "governance.namespaceLabel.enabled":     {"type": "boolean"},
     "governance.namespaceLabel.controlOwner": {"type": "string"},
     "network.blockExternalServices":          {"type": "boolean"},
@@ -46,7 +43,6 @@
     "vault.namespace":                        {"type": "string"},
     "vault.port":                             {"type": "integer"},
     "vault.pkiMount":                         {"type": "string"},
-    "vault.pkiRole":                          {"type": "string"},
     "vault.roleId":                           {"type": "string"},
     "vault.renewalRoleId":                    {"type": "string"},
     "vault.wrappedSecretIds":                 {"type": "array", "items": {"type": "string"}},
@@ -61,11 +57,7 @@
     "logging.fluentbit.siemEndpoint":         {"type": "string"},
     "logging.fluentbit.siemPort":             {"type": "integer"},
 
-    "backup.enabled":                         {"type": "boolean"},
-    "backup.schedule":                        {"type": "string"},
-
-    "monitoring.enabled":                     {"type": "boolean"},
-    "argocd.grantAdminRole":                  {"type": "boolean"}
+    "backup.enabled":                         {"type": "boolean"}
   },
   "required": [
     "clusterTarget",
