@@ -7,10 +7,6 @@
     "instanceName":                           {"type": "string"},
 
     "diskImage.sourceContainerDisk":          {"type": "string"},
-    "diskImage.sourceURL":                    {"type": "string"},
-    "diskImage.sourcePVCName":                {"type": "string"},
-    "diskImage.pullSecret":                   {"type": "string"},
-    "diskImage.certConfigMap":                {"type": "string"},
     "diskImage.storageClassName":             {"type": "string"},
     "diskImage.diskSizeGi":                   {"type": "integer"},
 
@@ -42,14 +38,9 @@
 
     "compliance.enableEncryption":            {"type": "boolean"},
     "compliance.auditLog.enabled":            {"type": "boolean"},
-    "compliance.auditLog.path":               {"type": "string"},
 
     "compliance.tls.enabled":                 {"type": "boolean"},
-    "compliance.tls.source":                  {"type": "string"},
-    "compliance.tls.minimumVersion":          {"type": "string"},
     "compliance.tls.externalHostname":        {"type": "string"},
-    "compliance.tls.certTTL":                 {"type": "string"},
-    "compliance.tls.renewWhenRemainingDays":  {"type": "integer"},
 
     "vault.address":                          {"type": "string", "pattern": "^https://"},
     "vault.namespace":                        {"type": "string"},
@@ -63,15 +54,12 @@
     "vault.caCert":                           {"type": "string"},
 
     "logging.rsyslog.enabled":                {"type": "boolean"},
-    "logging.rsyslog.forwarding.enabled":     {"type": "boolean"},
     "logging.rsyslog.forwarding.host":        {"type": "string"},
     "logging.rsyslog.forwarding.port":        {"type": "integer"},
-    "logging.rsyslog.forwarding.protocol":    {"type": "string"},
 
     "logging.fluentbit.enabled":              {"type": "boolean"},
     "logging.fluentbit.siemEndpoint":         {"type": "string"},
     "logging.fluentbit.siemPort":             {"type": "integer"},
-    "logging.fluentbit.tlsEnabled":           {"type": "boolean"},
 
     "backup.enabled":                         {"type": "boolean"},
     "backup.schedule":                        {"type": "string"},

@@ -101,12 +101,12 @@ diskImage:
   ## Secret name in the same namespace containing registry credentials for CDI.
   ## Must have keys: accessKeyId (username) and secretKey (password).
   ## Leave empty if the registry is unauthenticated.
-  pullSecret: ""
+  pullSecret: "quay-pull-secret"
   ## ConfigMap name in the same namespace containing the registry CA certificate.
   ## Must have key: ca.crt  (PEM-encoded CA cert that signed the registry TLS cert).
   ## CDI uses this to verify the registry TLS connection during image import.
   ## Leave empty to rely on the cluster-wide proxy trust bundle instead.
-  certConfigMap: ""
+  certConfigMap: "quay-ca-bundle"
   ## Storage class for the VM boot PVC (must support RWO block on s390x).
   ##
   ## COMPLIANCE — Phase 1 — mdb-enc-05 → iscf-dr-01 · iscf-dr-05 · iscf-dr-06
