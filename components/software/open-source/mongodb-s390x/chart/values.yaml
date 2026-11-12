@@ -159,6 +159,19 @@ ha:
 ## Namespace where the VM will be deployed
 namespaceOverride: ""
 
+## ── SSH access for Concert compliance checks (port 22) ───────────────────────
+## Rendered by: templates/service-ssh.yaml (NodePort, VM 0 only)
+## Ingress allowed by: templates/networkpolicy.yaml (ssh.concertSourceCidr only)
+## Concert host = InternalIP of the node running VM 0; port = ssh.nodePort.
+## Requires network.blockExternalServices=false (Kyverno rejects NodePort).
+ssh:
+  enabled: true
+  ## NodePort in range 30000-32767, forwards to VM 0 port 22.
+  nodePort: 30022
+  ## Source CIDR of Concert (sc-x86 egress). Empty = no SSH rule rendered.
+  ## REQUIRED before rollout. Set per environment.
+  concertSourceCidr: ""
+
 ## Service to expose MongoDB port within the cluster
 service:
   enabled: true

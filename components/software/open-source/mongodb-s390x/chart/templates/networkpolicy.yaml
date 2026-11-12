@@ -65,14 +65,18 @@ spec:
       ports:
         - port: {{ .Values.service.port }}
           protocol: TCP
-    ## SSH access — allow SSH (port 22) from within the cluster / same namespace
-    ## and virtctl port-forwarding / virtctl ssh.
+    ## SSH (port 22) from the Concert source CIDR only (sc-x86 egress).
+    ## Rendered only when ssh.enabled=true AND ssh.concertSourceCidr is set.
+    ## With no CIDR, no SSH rule is rendered and SSH is unreachable.
+    {{- $sshCidr := include "mongodb-vm.val" (list . "ssh.concertSourceCidr") }}
+    {{- if and (include "mongodb-vm.val" (list . "ssh.enabled") | eq "true") $sshCidr }}
     - from:
-        - podSelector: {}
-        - namespaceSelector: {}
+        - ipBlock:
+            cidr: {{ $sshCidr | quote }}
       ports:
         - port: 22
           protocol: TCP
+    {{- end }}
     ## Readiness probe — virt-launcher compute container hits :8080/health
     ## to determine if this VM is the RS primary. Must be allowed from same
     ## namespace so KubeVirt can mark the VMI as Ready.

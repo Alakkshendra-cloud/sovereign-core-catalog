@@ -83,6 +83,12 @@ governance:
 network:
   blockExternalServices: {{ network.blockExternalServices | default(false) }}
 
+## SSH access for Concert compliance checks (NodePort 30022 -> VM 0 :22)
+ssh:
+  enabled: {{ ssh.enabled | default(true) }}
+  nodePort: {{ ssh.nodePort | default(30022) }}
+  concertSourceCidr: "{{ ssh.concertSourceCidr | default('') }}"
+
 ## Compliance — mongod.conf hardening (Phase 2 + Phase 3 TLS)
 compliance:
   enableEncryption: {{ compliance.enableEncryption | default(false) }}
