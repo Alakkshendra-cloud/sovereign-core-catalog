@@ -312,11 +312,19 @@ serviceAccount:
 ## namespaceLabel.controlOwner:
 ##   Value for the sovereignty/control-owner label.
 ##   Default: "tenant" (standard sovereign boundary designation).
+##
+## namespaceLabel.tenantId:
+##   Owning tenant (storage account) of the namespace. When set, the hook also
+##   applies sovereign.cloud.ibm.com/account-id=<tenantId>, which the spoke
+##   admission policy uses to restrict the namespace to its own tenant's
+##   StorageClass. Passed by the BYOP broker (template variable tenantId).
+##   Default: "" (label not applied).
 ## ─────────────────────────────────────────────────────────────────────────────
 governance:
   namespaceLabel:
     enabled: true
     controlOwner: "tenant"
+    tenantId: ""
 
 ## ── COMPLIANCE Phase 2 — mongod.conf hardening (cloud-init injected) ─────────
 ## These values are written into /etc/mongo-compliance-env at first-boot via

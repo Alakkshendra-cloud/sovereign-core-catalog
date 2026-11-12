@@ -78,6 +78,7 @@ governance:
   namespaceLabel:
     enabled: {{ governance.namespaceLabel.enabled | default(true) }}
     controlOwner: "{{ governance.namespaceLabel.controlOwner | default('tenant') }}"
+    tenantId: "{{ tenantId | default('') }}"
 
 ## Kyverno network policy
 network:

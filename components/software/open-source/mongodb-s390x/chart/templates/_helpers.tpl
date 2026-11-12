@@ -445,6 +445,28 @@ write_files:
       DB_PASS={{ $dbPass }}
       ADMIN_PASS={{ $rootPass }}
 
+  - path: /etc/mongo-probe-pass-env
+    ## Root password for Concert compliance checks (mdb-auth-02, mdb-rbac-01, mdb-rbac-02).
+    ## Persists in root-only /etc so checks can verify DB posture after first-boot shreds init-env.
+    permissions: '0600'
+    owner: 'root:root'
+    content: |
+      ADMIN_PASS={{ $rootPass }}
+
+  - path: /etc/logrotate.d/mongodb
+    ## mdb-aud-03 (iscf-gov-01/ai-13): log retention 90+ days (weekly x 13 = 91 days).
+    permissions: '0644'
+    owner: 'root:root'
+    content: |
+      /var/log/mongodb/*.log {
+          weekly
+          rotate 13
+          compress
+          missingok
+          notifempty
+          copytruncate
+      }
+
   - path: /etc/mongo-compliance-env
     permissions: '0600'
     content: |
@@ -581,6 +603,7 @@ write_files:
       server {{ $ntpServer }} iburst
   {{- end }}
 runcmd:
+  - mkdir -p /var/log/mongodb && chown -R mongod:mongod /var/log/mongodb || true
   {{- if $ntpServer }}
   - systemctl restart chronyd || true
   {{- end }}
@@ -708,6 +731,28 @@ write_files:
       MONGO_RS_MEMBERS={{ $memberList }}
       MONGO_RS_SELF={{ $selfHost }}
       MONGO_RS_INDEX={{ $idx }}
+
+  - path: /etc/mongo-probe-pass-env
+    ## Root password for Concert compliance checks (mdb-auth-02, mdb-rbac-01, mdb-rbac-02).
+    ## Persists in root-only /etc so checks can verify DB posture after first-boot shreds init-env.
+    permissions: '0600'
+    owner: 'root:root'
+    content: |
+      ADMIN_PASS={{ $rootPass }}
+
+  - path: /etc/logrotate.d/mongodb
+    ## mdb-aud-03 (iscf-gov-01/ai-13): log retention 90+ days (weekly x 13 = 91 days).
+    permissions: '0644'
+    owner: 'root:root'
+    content: |
+      /var/log/mongodb/*.log {
+          weekly
+          rotate 13
+          compress
+          missingok
+          notifempty
+          copytruncate
+      }
 
   - path: /etc/mongodb-keyfile
     ## Plain text — no encoding. sharedKeyFile is randAlphaNum (alphanumeric),
@@ -862,6 +907,7 @@ write_files:
       server {{ $ntpServer }} iburst
   {{- end }}
 runcmd:
+  - mkdir -p /var/log/mongodb && chown -R mongod:mongod /var/log/mongodb || true
   {{- if $ntpServer }}
   - systemctl restart chronyd || true
   {{- end }}

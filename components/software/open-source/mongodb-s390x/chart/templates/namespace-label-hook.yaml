@@ -7,8 +7,11 @@
     namespace so platform posture reporting (Concert, Compliance Operator)
     can correctly attribute controls to this workload.
 
-    Implemented as a Helm post-install / post-upgrade Job so the chart
+    Implemented as a Helm pre-install / pre-upgrade Job so the chart
     remains self-contained without requiring cluster-admin privileges.
+    It runs BEFORE the VM and its PVCs are created so that the tenant label
+    (sovereign.cloud.ibm.com/account-id) is already present when the spoke
+    admission policy evaluates the PVCs.
 
   Control: mdb-gov-01 · ISCF: iscf-gov-01
 
@@ -35,7 +38,7 @@ metadata:
     {{- include "mongodb-vm.labels" . | nindent 4 }}
   annotations:
     {{- include "mongodb-vm.annotations" . | nindent 4 }}
-    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook": pre-install,pre-upgrade
     "helm.sh/hook-weight": "-5"
     "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
     compliance.sovcore.ibm.com/controls: "mdb-gov-01"
@@ -52,7 +55,7 @@ metadata:
     {{- include "mongodb-vm.labels" . | nindent 4 }}
   annotations:
     {{- include "mongodb-vm.annotations" . | nindent 4 }}
-    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook": pre-install,pre-upgrade
     "helm.sh/hook-weight": "-4"
     "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
     compliance.sovcore.ibm.com/controls: "mdb-gov-01"
@@ -73,7 +76,7 @@ metadata:
     {{- include "mongodb-vm.labels" . | nindent 4 }}
   annotations:
     {{- include "mongodb-vm.annotations" . | nindent 4 }}
-    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook": pre-install,pre-upgrade
     "helm.sh/hook-weight": "-3"
     "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
     compliance.sovcore.ibm.com/controls: "mdb-gov-01"
@@ -88,7 +91,7 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ---
 ## COMPLIANCE Phase 1 — mdb-gov-01 (iscf-gov-01)
-## Post-install/upgrade Job: apply sovereignty/control-owner label to namespace.
+## Pre-install/upgrade Job: apply sovereignty/control-owner (and tenant) labels to namespace.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -98,7 +101,7 @@ metadata:
     {{- include "mongodb-vm.labels" . | nindent 4 }}
   annotations:
     {{- include "mongodb-vm.annotations" . | nindent 4 }}
-    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook": pre-install,pre-upgrade
     "helm.sh/hook-weight": "0"
     "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
     compliance.sovcore.ibm.com/controls: "mdb-gov-01"
@@ -136,8 +139,11 @@ spec:
               oc label namespace "$(NAMESPACE)" \
                 "sovereignty/control-owner={{ .Values.governance.namespaceLabel.controlOwner }}" \
                 "openshift.io/user-monitoring=true" \
+                {{- if .Values.governance.namespaceLabel.tenantId }}
+                "sovereign.cloud.ibm.com/account-id={{ .Values.governance.namespaceLabel.tenantId }}" \
+                {{- end }}
                 --overwrite
-              echo "mdb-gov-01: namespace $(NAMESPACE) labelled sovereignty/control-owner={{ .Values.governance.namespaceLabel.controlOwner }} openshift.io/user-monitoring=true"
+              echo "mdb-gov-01: namespace $(NAMESPACE) labelled sovereignty/control-owner={{ .Values.governance.namespaceLabel.controlOwner }} openshift.io/user-monitoring=true{{- if .Values.governance.namespaceLabel.tenantId }} sovereign.cloud.ibm.com/account-id={{ .Values.governance.namespaceLabel.tenantId }}{{- end }}"
           env:
             - name: NAMESPACE
               valueFrom:
