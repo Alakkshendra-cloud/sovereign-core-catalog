@@ -338,12 +338,16 @@ governance:
 ##   Enforced externally by Compliance Operator (log volume + retention policy).
 ##   NOT controlled by this chart.
 ##
-## tls (Phase 3 — NOT YET IMPLEMENTED):
+## tls (Phase 3 — Vault PKI):
 ##   Control: mdb-enc-01 → iscf-cr-03 · iscf-dr-07 · iscf-ai-03
-##   Requires TLS certificates in the namespace as a Kubernetes Secret.
-##   Phase 3 will add: compliance.tls.enabled, compliance.tls.certSecretName,
-##                     compliance.tls.minimumVersion
-##   Do NOT set net.tls.mode manually — Phase 3 will manage this safely.
+##   Enables TLS in transit (net.tls.mode: requireTLS) with certificates
+##   issued at boot by the tenant's HashiCorp Vault PKI (vault.* values
+##   below). Full design: encryption-in-transit-vault-pki-implementation.md.
+##   IMPORTANT: the VM image must contain mongo-vault-fetch-certs.py and the
+##   mongo-vault-certs.service unit (securedimage built after 2026-11-11).
+##   IMPORTANT: enabling TLS requires a FRESH deployment — mongod.conf is
+##   written only at first boot (sentinel-guarded).
+##   FAIL CLOSED: no certificate → no mongod, never a plaintext start.
 ## ─────────────────────────────────────────────────────────────────────────────
 compliance:
   ## Phase 2 — mdb-enc-02 (iscf-cr-01/dr-06)
@@ -359,10 +363,73 @@ compliance:
     ## Log all auth decisions (not just failures) — required for mdb-aud-02.
     auditAuthorizationSuccess: true
 
-  ## tls:                     ## Phase 3 — NOT YET IMPLEMENTED
-  ##   enabled: false          ## mdb-enc-01 (iscf-cr-03/dr-07/ai-03)
-  ##   certSecretName: ""      ## Name of Secret in namespace with tls.crt + tls.key
-  ##   minimumVersion: TLS1_2  ## TLS 1.2 minimum per IBM security policy
+  ## Phase 3 — mdb-enc-01 (iscf-cr-03/dr-07/ai-03)
+  ## Set true to enable net.tls.mode: requireTLS with Vault-issued
+  ## certificates (fetched in-guest by mongo-vault-certs.service BEFORE
+  ## mongod first starts). Requires the vault.* block below to be complete.
+  tls:
+    enabled: false
+    ## Certificate source: "vault" (Option B — runtime issue from the tenant
+    ## Vault PKI). Option A ("secret" — pre-created cert Secret) is not
+    ## implemented; the chart fails the render if it is selected.
+    source: "vault"
+    ## Minimum TLS version — MongoDB has no native minimum-version option,
+    ## so this maps to net.tls.disabledProtocols (TLS1_0,TLS1_1 disabled).
+    ## Only TLS1_2 is supported.
+    minimumVersion: "TLS1_2"
+    ## External hostname clients use through the VIP (NodePort/LoadBalancer).
+    ## Added to the certificate SANs so external clients pass hostname
+    ## verification against the name in their connection string.
+    externalHostname: ""
+    ## Leaf certificate TTL (Go duration). 720h = 30 days, renewed daily at
+    ## ≤7 days remaining — ~3 days of Vault-outage tolerance. Keep under
+    ## 365 days (mdb-enc-03).
+    certTTL: "720h"
+    ## Renew when this many days of validity remain (daily timer checks).
+    renewWhenRemainingDays: 7
+
+## ── Vault PKI — certificate source for compliance.tls (Option B) ─────────────
+## Vault (tenant-operated, e.g. IBM Vault Self-Managed for Z and LinuxONE on
+## s390x) runs in its own namespace on the tenant OCP cluster; the VM guests
+## reach it at vault.<namespace>:<port> over TLS.
+##
+## ArgoCD SAFETY: every value below is a plain value — the chart performs NO
+## Helm lookup on this path (lookup is disabled under ArgoCD; the chart
+## hard-fails the render when TLS is enabled and any value is missing, it
+## never silently renders without TLS).
+##
+## wrappedSecretIds are SINGLE-USE response-wrapping tokens: ONE PER VM, in
+## member order (a wrapping token is consumed by the first unwrap, so a
+## 3-member RS needs 3). Mint per deployment (doc Part A5). Their wrapping
+## TTL must cover commit→sync→first-boot on a GitOps flow (use 1–2h).
+## NOTE: updating these values never reaches an EXISTING VM (cloud-init
+## write_files runs only when the instance-id changes) — rotate by
+## re-creating the VM or dropping new material in-guest.
+vault:
+  ## Vault Service address as seen from the VM pod network.
+  address: ""
+  ## KUBERNETES namespace where Vault runs (NetworkPolicy egress target).
+  namespace: "vault"
+  ## Vault Service port (NetworkPolicy egress port).
+  port: 8200
+  ## PKI mount + role that issue the mongod certificates (doc Part A3).
+  pkiMount: "pki_int"
+  pkiRole: "mongodb-server"
+  ## AppRole RoleID — an identifier, NOT a secret (safe at 0444 in-guest).
+  roleId: ""
+  ## RoleID of the RENEWAL AppRole (also not a secret). The renewal
+  ## secret-ids belong to that role; AppRole login requires the matching
+  ## role_id/secret_id pair, so the renewal branch uses this one.
+  renewalRoleId: ""
+  ## Single-use response-wrapping tokens, ONE PER VM, in member order.
+  wrappedSecretIds: []
+  ## Persistent renewal secret-ids, ONE PER VM, in member order (used by the
+  ## daily renewal timer after the single-use bootstrap token is consumed).
+  renewalSecretIds: []
+  ## CA (PEM) that signed Vault's own HTTPS listener — PUBLIC material,
+  ## distinct from the PKI CA (which the issue response returns). Multi-line
+  ## PEM literal.
+  caCert: ""
 
 ## ── Logging — rsyslog forwarding / custom config ─────────────────────────────
 ## Injects /etc/rsyslog.d/60-mongodb.conf into the VM guest via cloud-init.

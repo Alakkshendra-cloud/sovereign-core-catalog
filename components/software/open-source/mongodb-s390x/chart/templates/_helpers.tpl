@@ -276,6 +276,101 @@ data:
 {{- end }}
 
 {{/*
+mongodb-vm.vaultBootstrap — resolve and validate the Vault PKI TLS bootstrap
+material ONCE per render. Returns JSON (parse with fromJson):
+  { enabled, address, pkiMount, pkiRole, roleId, caCert, certTTL,
+    minRemainingS, minimumVersion, altNames, wrapped: [...], renewal: [...] }
+
+Every field resolves flat dot-notation key first (broker helm.valuesObject
+override), then the nested values path. HARD-FAILS the render when
+compliance.tls.enabled=true and any required value is missing, when the
+source is not "vault", or when the token lists do not hold ONE entry per
+VM (wrapping tokens are single-use, so every member needs its own) — the
+chart NEVER renders a TLS-enabled userdata with empty bootstrap
+credentials: that VM would strand at first boot with no cert and no
+plaintext fallback.
+
+No Helm lookup is performed on this path (ArgoCD disables lookup); all
+material arrives as plain values. Called from cloudinit-secret.yaml, which
+passes the result into both userdata contexts as "vaultBootstrap" (the
+same once-per-render pattern as sharedPasswords / sharedKeyFile — the
+userdata templates carry a direct-call fallback for safety).
+*/}}
+{{- define "mongodb-vm.vaultBootstrap" -}}
+{{- $tlsEnabled := include "mongodb-vm.val" (list . "compliance.tls.enabled") | default "false" -}}
+{{- if not ($tlsEnabled | eq "true") -}}
+{{- dict "enabled" false | toJson -}}
+{{- else -}}
+{{- $source := include "mongodb-vm.val" (list . "compliance.tls.source") | default "vault" -}}
+{{- if ne $source "vault" -}}
+{{- fail (printf "compliance.tls.source '%s' is not supported — only 'vault' (Option B, runtime issue from the tenant Vault PKI). Option A (pre-created cert Secret) is not implemented." $source) -}}
+{{- end -}}
+{{- $vmCount := 1 -}}
+{{- if include "mongodb-vm.val" (list . "ha.enabled") | eq "true" -}}
+{{- $vmCount = include "mongodb-vm.val" (list . "ha.replicaCount") | default "3" | int -}}
+{{- end -}}
+{{- $address := include "mongodb-vm.val" (list . "vault.address") -}}
+{{- $roleId := include "mongodb-vm.val" (list . "vault.roleId") -}}
+{{- $renewalRoleId := include "mongodb-vm.val" (list . "vault.renewalRoleId") -}}
+{{- $caCert := include "mongodb-vm.val" (list . "vault.caCert") -}}
+{{- $pkiMount := include "mongodb-vm.val" (list . "vault.pkiMount") | default "pki_int" -}}
+{{- $pkiRole := include "mongodb-vm.val" (list . "vault.pkiRole") | default "mongodb-server" -}}
+{{- $certTTL := include "mongodb-vm.val" (list . "compliance.tls.certTTL") | default "720h" -}}
+{{- $renewDays := include "mongodb-vm.val" (list . "compliance.tls.renewWhenRemainingDays") | default "7" | int -}}
+{{- $minimumVersion := include "mongodb-vm.val" (list . "compliance.tls.minimumVersion") | default "TLS1_2" -}}
+{{- $externalHostname := include "mongodb-vm.val" (list . "compliance.tls.externalHostname") -}}
+{{- if or (not $address) (not $roleId) (not $renewalRoleId) (not $caCert) (not $pkiRole) -}}
+{{- fail "compliance.tls.enabled=true requires vault.address, vault.roleId, vault.renewalRoleId, vault.caCert and vault.pkiRole (all plain values — ArgoCD-safe; no Helm lookup on this path). The renewal secret-id belongs to the RENEWAL AppRole, which has its own RoleID. See encryption-in-transit-vault-pki-implementation.md Part B." -}}
+{{- end -}}
+{{- if not (hasPrefix "https://" $address) -}}
+{{- fail (printf "vault.address must use https:// (got '%s') — plain http silently disables TLS for the entire Vault credential channel (unwrap/login/issue)." $address) -}}
+{{- end -}}
+{{- if le $renewDays 0 -}}
+{{- fail (printf "compliance.tls.renewWhenRemainingDays must be > 0 (got %d) — 0 would disable renewal entirely." $renewDays) -}}
+{{- end -}}
+{{- if ne $minimumVersion "TLS1_2" -}}
+{{- fail (printf "compliance.tls.minimumVersion '%s' is not supported — only TLS1_2 (MongoDB has no native minimum-version option; it maps to net.tls.disabledProtocols)." $minimumVersion) -}}
+{{- end -}}
+{{- /* Token lists: flat broker key first, then the nested values path. */ -}}
+{{- $wrapped := index .Values "vault.wrappedSecretIds" -}}
+{{- if not $wrapped -}}
+{{- $vaultVal := index .Values "vault" | default dict -}}
+{{- $wrapped = index $vaultVal "wrappedSecretIds" | default list -}}
+{{- end -}}
+{{- $renewal := index .Values "vault.renewalSecretIds" -}}
+{{- if not $renewal -}}
+{{- $vaultVal := index .Values "vault" | default dict -}}
+{{- $renewal = index $vaultVal "renewalSecretIds" | default list -}}
+{{- end -}}
+{{- if lt (len $wrapped) $vmCount -}}
+{{- fail (printf "compliance.tls.enabled=true needs vault.wrappedSecretIds with ONE entry per VM (have %d, need %d) — response-wrapping tokens are single-use, so each member needs its own. Mint per deployment: doc encryption-in-transit-vault-pki-implementation.md Part A5." (len $wrapped) $vmCount) -}}
+{{- end -}}
+{{- if lt (len $renewal) $vmCount -}}
+{{- fail (printf "compliance.tls.enabled=true needs vault.renewalSecretIds with ONE entry per VM (have %d, need %d) — the daily renewal timer re-logs-in after the single-use bootstrap token is consumed." (len $renewal) $vmCount) -}}
+{{- end -}}
+{{- /* SANs beyond the member CN: in HA the client Service
+       <fullname>.<ns>.svc.cluster.local selects all members and is the
+       documented in-cluster connection path, and the VIP Service FQDN is
+       what VIP clients verify against — both must be in the cert SANs.
+       The Vault PKI role's allowed_domains must permit these zones too
+       (doc Part A3). */ -}}
+{{- $ns := include "mongodb-vm.val" (list . "namespaceOverride") | default .Release.Namespace -}}
+{{- $base := include "mongodb-vm.fullname" . -}}
+{{- $altNames := "localhost" -}}
+{{- if include "mongodb-vm.val" (list . "ha.enabled") | eq "true" -}}
+{{- $altNames = printf "%s,%s.%s.svc.cluster.local" $altNames $base $ns -}}
+{{- if include "mongodb-vm.val" (list . "vip.enabled") | eq "true" -}}
+{{- $altNames = printf "%s,%s-vip.%s.svc.cluster.local" $altNames $base $ns -}}
+{{- end -}}
+{{- end -}}
+{{- if $externalHostname -}}
+{{- $altNames = printf "%s,%s" $altNames $externalHostname -}}
+{{- end -}}
+{{- dict "enabled" true "address" $address "pkiMount" $pkiMount "pkiRole" $pkiRole "roleId" $roleId "renewalRoleId" $renewalRoleId "caCert" $caCert "certTTL" $certTTL "minRemainingS" (mul $renewDays 86400) "minimumVersion" $minimumVersion "altNames" $altNames "wrapped" $wrapped "renewal" $renewal | toJson -}}
+{{- end -}}
+{{- end }}
+
+{{/*
 Cloud-init userdata — standalone (no replica set).
 */}}
 {{- define "mongodb-vm.userdata" -}}
@@ -298,6 +393,13 @@ Cloud-init userdata — standalone (no replica set).
   {{- if $concertKey -}}
     {{- $allSSHKeys = append $allSSHKeys $concertKey -}}
   {{- end -}}
+{{- end -}}
+{{- /* Vault PKI TLS bootstrap (Phase 3, mdb-enc-01) — resolved once per render
+       by cloudinit-secret.yaml and passed in as "vaultBootstrap"; direct-call
+       fallback resolves from values (deterministic — no lookup). */ -}}
+{{- $vb := .vaultBootstrap -}}
+{{- if not $vb -}}
+{{- $vb = include "mongodb-vm.vaultBootstrap" . | fromJson -}}
 {{- end -}}
 #cloud-config
 disable_root: false
@@ -354,6 +456,92 @@ write_files:
       MONGO_COMPLIANCE_AUDIT_PATH={{ include "mongodb-vm.val" (list . "compliance.auditLog.path") | default "/var/log/mongodb/audit.json" }}
       MONGO_COMPLIANCE_AUDIT_AUTH_SUCCESS={{ include "mongodb-vm.val" (list . "compliance.auditLog.auditAuthorizationSuccess") | default "true" | lower }}
 
+  {{- if $vb.enabled }}
+  ## Phase 3 — mdb-enc-01 (iscf-cr-03/dr-07/ai-03): TLS in transit via the
+  ## tenant Vault PKI. The TLS private key NEVER transits Kubernetes — the
+  ## only secret material below is the single-use wrapped token and the
+  ## renewal secret-id. The certificate is fetched in-guest (python3.12 +
+  ## requests) BEFORE mongod first starts; fail closed, never plaintext.
+  - path: /etc/mongo-tls-env
+    permissions: '0600'
+    content: |
+      ## TLS flags — sourced by mongo-first-boot.sh, mongo-rs-init.sh and
+      ## mongo-primary-probe.py (persists in /etc; nothing shreds it).
+      MONGO_TLS_ENABLED=true
+      MONGO_TLS_CERT_FILE=/etc/mongodb/tls/server.pem
+      MONGO_TLS_CA_FILE=/etc/mongodb/tls/ca.pem
+      MONGO_TLS_MIN_VERSION={{ $vb.minimumVersion }}
+  - path: /etc/mongo-vault/env
+    permissions: '0644'
+    content: |
+      ## Vault PKI bootstrap — consumed by mongo-vault-fetch-certs.py.
+      ## Names/paths/SANs only; the credentials live in the files below.
+      VAULT_ADDR={{ $vb.address }}
+      VAULT_CACERT=/etc/mongo-vault/vault-ca.pem
+      VAULT_PKI_MOUNT={{ $vb.pkiMount }}
+      VAULT_PKI_ROLE={{ $vb.pkiRole }}
+      VAULT_ROLE_ID_FILE=/etc/mongo-vault/role_id
+      VAULT_WRAPPED_SID_FILE=/etc/mongo-vault/wrapped-secret-id
+      VAULT_RENEWAL_SID_FILE=/etc/mongo-vault/renewal-secret-id
+      MONGO_TLS_CN={{ include "mongodb-vm.fullname" . }}.{{ .Values.namespaceOverride | default .Release.Namespace }}.svc.cluster.local
+      MONGO_TLS_ALT_NAMES={{ $vb.altNames }}
+      MONGO_TLS_IP_SANS=127.0.0.1
+      MONGO_TLS_TTL={{ $vb.certTTL }}
+      MONGO_TLS_CERT_DIR=/etc/mongodb/tls
+      MONGO_TLS_MIN_REMAINING_S={{ $vb.minRemainingS }}
+  - path: /etc/mongo-vault/role_id
+    ## AppRole RoleID — an identifier, NOT a secret (Vault AppRole docs).
+    permissions: '0444'
+    content: |
+      {{ $vb.roleId }}
+  - path: /etc/mongo-vault/renewal-role-id
+    ## RoleID of the RENEWAL AppRole (also not a secret). The renewal
+    ## secret-id belongs to that role — AppRole login requires the matching
+    ## role_id/secret_id pair, so the renewal branch must use this one.
+    permissions: '0444'
+    content: |
+      {{ $vb.renewalRoleId }}
+  - path: /etc/mongo-vault/wrapped-secret-id
+    ## Single-use response-wrapping token — consumed at first boot, then
+    ## deleted by the fetch script. Replay is detectable (second unwrap 400s
+    ## and the Vault audit log shows the first).
+    permissions: '0400'
+    content: |
+      {{ index $vb.wrapped 0 }}
+  - path: /etc/mongo-vault/renewal-secret-id
+    ## Persistent secret-id for the daily renewal timer (mongo-vault-renew).
+    permissions: '0400'
+    content: |
+      {{ index $vb.renewal 0 }}
+  - path: /etc/mongo-vault/vault-ca.pem
+    ## CA that signed Vault's own HTTPS listener — PUBLIC material, distinct
+    ## from the PKI CA (which the issue response returns as issuing_ca).
+    permissions: '0644'
+    content: |
+      {{ $vb.caCert | nindent 6 }}
+  ## Systemd drop-ins (TLS deployments only) — applied by write_files before
+  ## runcmd; the daemon-reload runcmd line below loads them.
+  - path: /etc/systemd/system/mongodb-first-boot.service.d/vault-tls.conf
+    permissions: '0644'
+    content: |
+      [Unit]
+      ## Fail closed: first-boot must not run if the Vault cert fetch failed
+      ## (Requires= propagates the failure; the baked unit uses Wants= so a
+      ## condition-skipped fetch never blocks non-TLS VMs).
+      Requires=mongo-vault-certs.service
+  - path: /etc/systemd/system/mongod.service.d/tls.conf
+    permissions: '0644'
+    content: |
+      [Unit]
+      ## Reboot fail-closed: mongod never starts without its TLS material,
+      ## and never with an unrenewable certificate — Requires= blocks mongod
+      ## when the per-boot re-check fails (expired cert + Vault unreachable).
+      ## With a valid cert the fetch fast-path returns instantly without
+      ## contacting Vault, so healthy boots pay nothing for this.
+      Requires=mongo-vault-certs.service
+      ConditionPathExists=/etc/mongodb/tls/server.pem
+  {{- end }}
+
   - path: /etc/mongo-rsyslog-env
     permissions: '0600'
     content: |
@@ -395,6 +583,17 @@ write_files:
 runcmd:
   {{- if $ntpServer }}
   - systemctl restart chronyd || true
+  {{- end }}
+  {{- if $vb.enabled }}
+  ## Phase 3 (mdb-enc-01): reload systemd (the TLS drop-ins above were just
+  ## written by write_files), then fetch the TLS certificate BEFORE
+  ## first-boot starts mongod. mongo-vault-certs.service is Type=oneshot —
+  ## systemctl start blocks until the fetch completes or fails. On failure,
+  ## first-boot's own step-0 TLS guard stops mongod: never a plaintext start.
+  - systemctl daemon-reload
+  - systemctl start mongo-vault-certs.service
+  ## Daily renewal timer — fast-path no-op while the cert has margin.
+  - systemctl enable --now mongo-vault-renew.timer
   {{- end }}
   - set -a && . /etc/mongo-init-env && set +a && /usr/local/bin/mongo-first-boot.sh
 {{- end }}
@@ -453,6 +652,13 @@ Member-0 additionally:
   {{- if $concertKey -}}
     {{- $allSSHKeys = append $allSSHKeys $concertKey -}}
   {{- end -}}
+{{- end -}}
+{{- /* Vault PKI TLS bootstrap (Phase 3, mdb-enc-01) — resolved once per render
+       by cloudinit-secret.yaml and passed in as "vaultBootstrap"; direct-call
+       fallback resolves from values (deterministic — no lookup). */ -}}
+{{- $vb := .vaultBootstrap -}}
+{{- if not $vb -}}
+{{- $vb = include "mongodb-vm.vaultBootstrap" . | fromJson -}}
 {{- end -}}
 #cloud-config
 disable_root: false
@@ -534,6 +740,91 @@ write_files:
       MONGO_COMPLIANCE_AUDIT_PATH={{ include "mongodb-vm.val" (list . "compliance.auditLog.path") | default "/var/log/mongodb/audit.json" }}
       MONGO_COMPLIANCE_AUDIT_AUTH_SUCCESS={{ include "mongodb-vm.val" (list . "compliance.auditLog.auditAuthorizationSuccess") | default "true" | lower }}
 
+  {{- if $vb.enabled }}
+  ## Phase 3 — mdb-enc-01 (iscf-cr-03/dr-07/ai-03): TLS in transit via the
+  ## tenant Vault PKI. Each member issues its OWN certificate (CN = its member
+  ## FQDN) with its OWN single-use wrapped token — index-matched like the
+  ## keyfile. The TLS private key NEVER transits Kubernetes.
+  - path: /etc/mongo-tls-env
+    permissions: '0600'
+    content: |
+      ## TLS flags — sourced by mongo-first-boot.sh, mongo-rs-init.sh and
+      ## mongo-primary-probe.py (persists in /etc; nothing shreds it).
+      MONGO_TLS_ENABLED=true
+      MONGO_TLS_CERT_FILE=/etc/mongodb/tls/server.pem
+      MONGO_TLS_CA_FILE=/etc/mongodb/tls/ca.pem
+      MONGO_TLS_MIN_VERSION={{ $vb.minimumVersion }}
+  - path: /etc/mongo-vault/env
+    permissions: '0644'
+    content: |
+      ## Vault PKI bootstrap — consumed by mongo-vault-fetch-certs.py.
+      ## Names/paths/SANs only; the credentials live in the files below.
+      VAULT_ADDR={{ $vb.address }}
+      VAULT_CACERT=/etc/mongo-vault/vault-ca.pem
+      VAULT_PKI_MOUNT={{ $vb.pkiMount }}
+      VAULT_PKI_ROLE={{ $vb.pkiRole }}
+      VAULT_ROLE_ID_FILE=/etc/mongo-vault/role_id
+      VAULT_WRAPPED_SID_FILE=/etc/mongo-vault/wrapped-secret-id
+      VAULT_RENEWAL_SID_FILE=/etc/mongo-vault/renewal-secret-id
+      MONGO_TLS_CN={{ $selfHost }}
+      MONGO_TLS_ALT_NAMES={{ $vb.altNames }}
+      MONGO_TLS_IP_SANS=127.0.0.1
+      MONGO_TLS_TTL={{ $vb.certTTL }}
+      MONGO_TLS_CERT_DIR=/etc/mongodb/tls
+      MONGO_TLS_MIN_REMAINING_S={{ $vb.minRemainingS }}
+  - path: /etc/mongo-vault/role_id
+    ## AppRole RoleID — an identifier, NOT a secret (Vault AppRole docs).
+    permissions: '0444'
+    content: |
+      {{ $vb.roleId }}
+  - path: /etc/mongo-vault/renewal-role-id
+    ## RoleID of the RENEWAL AppRole (also not a secret). The renewal
+    ## secret-id belongs to that role — AppRole login requires the matching
+    ## role_id/secret_id pair, so the renewal branch must use this one.
+    permissions: '0444'
+    content: |
+      {{ $vb.renewalRoleId }}
+  - path: /etc/mongo-vault/wrapped-secret-id
+    ## THIS member's single-use response-wrapping token (index-matched).
+    ## Consumed at first boot, then deleted by the fetch script; replay is
+    ## detectable (second unwrap 400s; Vault audit log shows the first).
+    permissions: '0400'
+    content: |
+      {{ index $vb.wrapped (int $idx) }}
+  - path: /etc/mongo-vault/renewal-secret-id
+    ## THIS member's persistent secret-id for the daily renewal timer.
+    permissions: '0400'
+    content: |
+      {{ index $vb.renewal (int $idx) }}
+  - path: /etc/mongo-vault/vault-ca.pem
+    ## CA that signed Vault's own HTTPS listener — PUBLIC material, distinct
+    ## from the PKI CA (which the issue response returns as issuing_ca).
+    permissions: '0644'
+    content: |
+      {{ $vb.caCert | nindent 6 }}
+  ## Systemd drop-ins (TLS deployments only) — applied by write_files before
+  ## runcmd; the daemon-reload runcmd line below loads them.
+  - path: /etc/systemd/system/mongodb-first-boot.service.d/vault-tls.conf
+    permissions: '0644'
+    content: |
+      [Unit]
+      ## Fail closed: first-boot must not run if the Vault cert fetch failed
+      ## (Requires= propagates the failure; the baked unit uses Wants= so a
+      ## condition-skipped fetch never blocks non-TLS VMs).
+      Requires=mongo-vault-certs.service
+  - path: /etc/systemd/system/mongod.service.d/tls.conf
+    permissions: '0644'
+    content: |
+      [Unit]
+      ## Reboot fail-closed: mongod never starts without its TLS material,
+      ## and never with an unrenewable certificate — Requires= blocks mongod
+      ## when the per-boot re-check fails (expired cert + Vault unreachable).
+      ## With a valid cert the fetch fast-path returns instantly without
+      ## contacting Vault, so healthy boots pay nothing for this.
+      Requires=mongo-vault-certs.service
+      ConditionPathExists=/etc/mongodb/tls/server.pem
+  {{- end }}
+
   - path: /etc/mongo-rsyslog-env
     permissions: '0600'
     content: |
@@ -573,6 +864,18 @@ write_files:
 runcmd:
   {{- if $ntpServer }}
   - systemctl restart chronyd || true
+  {{- end }}
+  {{- if $vb.enabled }}
+  ## Phase 3 (mdb-enc-01): reload systemd (the TLS drop-ins above were just
+  ## written by write_files), then fetch THIS member's TLS certificate.
+  ## systemctl start blocks until the oneshot fetch completes or fails; on
+  ## failure the mongodb-first-boot.service Requires= drop-in (loaded by the
+  ## daemon-reload above) aborts first-boot: no certificate, no mongod,
+  ## never a plaintext start.
+  - systemctl daemon-reload
+  - systemctl start mongo-vault-certs.service
+  ## Daily renewal timer — fast-path no-op while the cert has margin.
+  - systemctl enable --now mongo-vault-renew.timer
   {{- end }}
   ## Trigger first-boot via systemctl start — this detaches mongo-first-boot.sh from the
   ## cloud-init runcmd process group entirely. Running the script inline in runcmd means

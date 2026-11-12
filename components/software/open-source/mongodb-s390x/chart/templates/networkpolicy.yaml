@@ -127,6 +127,24 @@ spec:
       ports:
         - port: 5000
           protocol: TCP
+    {{- if and (include "mongodb-vm.val" (list . "compliance.tls.enabled") | default "false" | eq "true") (include "mongodb-vm.val" (list . "vault.address")) }}
+    ## Vault PKI egress (Phase 3, mdb-enc-01) — the in-guest bootstrap
+    ## (mongo-vault-certs.service) fetches the mongod TLS certificate from
+    ## the tenant Vault at boot, and the daily renewal timer re-issues near
+    ## expiry. Scoped to the Vault namespace and Service port only, so
+    ## mdb-net-04 (least-egress) still holds. CRITICAL: without this rule
+    ## the default-deny egress silently drops the fetch and first-boot
+    ## fails closed (by design — never plaintext). Vault is reached via its
+    ## Service DNS name (vault.<vault.namespace>.svc.cluster.local), so the
+    ## openshift-dns egress rules above already cover name resolution.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ include "mongodb-vm.val" (list . "vault.namespace") | default "vault" }}
+      ports:
+        - port: {{ include "mongodb-vm.val" (list . "vault.port") | default "8200" | int }}
+          protocol: TCP
+    {{- end }}
     ## Replica-set peer traffic — once policyTypes includes Egress, egress is
     ## default-deny, so peer-to-peer 27017 needs an explicit egress rule in
     ## addition to the ingress rule on the receiving pod. Without it the RS
@@ -152,5 +170,5 @@ spec:
         - port: 8080
           protocol: TCP
     ## mdb-net-04: all other egress blocked — only DNS + HTTPS + internal registry
-    ## + RS peer port + probe port allowed.
+    ## + Vault (TLS deployments, port 8200) + RS peer port + probe port allowed.
 {{- end }}
