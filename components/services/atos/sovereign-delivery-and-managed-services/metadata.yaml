@@ -1,0 +1,22 @@
+apiVersion: sovereign-catalog.io/v1alpha1
+kind: ServiceProfile
+metadata:
+  companyRef: "companies/atos"
+  name: "Atos Group"
+  shortDescription: "Delivery and managed services partner that enables sovereign deployments, operations, and regional compliance alignment."
+  fullDescription: "Atos Group is an IT service provider that helps organizations plan, deliver, and operate sovereign deployments. It supports delivery and managed operations, and it aligns each deployment with regional compliance requirements. Atos serves telecommunications, media, technology, manufacturing, energy, and utilities customers."
+  sovereignCoreRelevance: "Gives Sovereign Core customers a European delivery and managed services partner for sovereign deployments, day-2 operations, and regional compliance alignment."
+  industries: ["telco", "energy"] # Media, technology, manufacturing, and utilities have no catalog code. Utilities mapped to energy.
+  intendedUsers: ["Business stakeholders", "Technology stakeholders", "Platform engineers", "Compliance officers"]
+  availabilityState: "discoverable_only"
+  lifecycleStatus: "approved"
+  storefrontVisibility: "public"
+spec:
+  serviceType: "ManagedOperations"
+  additionalServiceTypes:
+    - "SystemIntegration"
+  sovereignty:
+    corporateHQ: "France" # The PDF says only "Europe".
+    ultimateParentCompanyHQ: "France"
+  links:
+    productPageUrl: "https://www.atosgroup.com/"

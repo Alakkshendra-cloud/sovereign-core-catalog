@@ -23,8 +23,8 @@ spec:
   additionalServiceTypes:
     - "SecurityConsulting"
     - "SystemIntegration"
-  sovereignty:
-    corporateHQ: "USA"
+  jurisdiction:
+    hq: "USA"
     ultimateParentCompanyHQ: "USA"
     staffClearanceLevel: "IBM Expert Labs staff subject to IBM's global security and background check policies; country-specific staffing available upon request"
   certifications:

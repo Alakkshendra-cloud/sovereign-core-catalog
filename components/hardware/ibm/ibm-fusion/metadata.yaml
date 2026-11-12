@@ -1,0 +1,31 @@
+apiVersion: sovereign-catalog.io/v1alpha1
+kind: HardwareProfile
+metadata:
+  companyRef: "companies/ibm"
+  vendor: "International Business Machines Corporation"
+  product: "IBM Fusion"
+  shortDescription: "IBM Fusion provides the compute, storage and networking foundation for on-premises sovereign AI and traditional workloads. It is a validated deployment architecture with IBM Sovereign Core on Red Hat OpenShift."
+  fullDescription: "IBM Fusion supplies the compute, storage and networking capabilities that support on-premises AI and enterprise workloads. IBM Sovereign Core on IBM Fusion is a validated deployment architecture that uses Red Hat OpenShift. The validated configuration covers installation, networking compatibility, storage integration and observability, so organizations don't have to design and validate each component themselves. Sovereign Core provides the customer-operated control plane for managing access, workloads and compliance, and for governed AI model deployment, inference and agent operations. Multi-tenant environments can be planned for enterprises and service providers, subject to supported configurations and infrastructure requirements. Optional IBM Technology Lifecycle Services (TLS) Sovereign Support extends sovereignty to infrastructure maintenance and operations, with support personnel and information handling aligned to applicable regional requirements. TLS Sovereign Support is subject to service availability and scope."
+  sovereignCoreRelevance: "Validated with IBM Sovereign Core as a tested and repeatable on-premises deployment, so regulated organizations and service providers can keep data, access and operations inside their own sovereign boundary."
+  industries: ["government", "bfsi", "healthcare", "energy", "sovereign_ai"]
+  intendedUsers: ["Platform engineers", "Infrastructure teams", "IT operations teams", "Managed service providers"]
+  category: "Server"
+  lifecycleStatus: "approved"
+  storefrontVisibility: "public"
+  availabilityState: "discoverable_only"
+spec:
+  jurisdiction:
+    hq: "USA"
+  capabilities:
+    platform: "Red Hat OpenShift"
+    sovereignCoreValidation:
+      validatedIntegrationAreas:
+        - "Installation"
+        - "Networking compatibility"
+        - "Storage integration"
+        - "Observability"
+      multiTenantDeploymentPattern: true
+    optionalServices:
+      - "IBM Technology Lifecycle Services (TLS) Sovereign Support"
+  links:
+    productPageUrl: "https://www.ibm.com/products/storage-fusion"

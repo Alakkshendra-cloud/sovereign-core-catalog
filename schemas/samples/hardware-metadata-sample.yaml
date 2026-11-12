@@ -116,8 +116,11 @@ spec:
   # ----------------------------------------------------------
   jurisdiction:
     # [MANDATORY] Country/region where the hardware vendor is headquartered
-    # Format examples: "USA", "UK", "Japan", "South Korea"
+    # Allowed values: "USA" | "UK" | "France" | "Germany" | "India" | "Canada" | "Australia" | "Japan" | "Finland" | "Belgium"
     hq: "<Country/Region>"
+
+    # [OPTIONAL] Country/region of the ultimate parent company
+    # ultimateParentCompanyHQ: "<Country/Region>"
 
     # [RECOMMENDED] Supply chain transparency statement
     # Describe export control classification, country of manufacture, or ITAR status

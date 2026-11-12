@@ -21,7 +21,7 @@ spec:
     license: "RapidFort Terms Of Use"
     sourceAvailable: false
   jurisdiction:
-    hq: "United States"
+    hq: "USA"
   architecture:
     format: "Kubernetes"
     airgapReady: true

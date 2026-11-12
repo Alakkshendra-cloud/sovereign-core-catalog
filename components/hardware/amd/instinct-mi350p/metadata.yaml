@@ -16,6 +16,7 @@ metadata:
 spec:
   jurisdiction:
     hq: "USA"
+    ultimateParentCompanyHQ: "USA"
     supplyChainAttestation: "PCIe add-in card; US export controlled (EAR)"
   capabilities:
     formFactor: "PCIe"

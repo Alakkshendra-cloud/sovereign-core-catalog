@@ -1,0 +1,22 @@
+apiVersion: sovereign-catalog.io/v1alpha1
+kind: HardwareProfile
+metadata:
+  companyRef: "companies/dell"
+  vendor: "Dell Technologies Inc."
+  product: "Dell AI Factory with NVIDIA"
+  shortDescription: "Hardware acceleration and platform options for sovereign AI and infrastructure in controlled environments."
+  fullDescription: "The Dell AI Factory with NVIDIA provides infrastructure for organizations that need to train and deploy AI models while keeping full control and ownership of their AI capabilities. Dell positions it for sovereign AI initiatives, including national and regional AI data centers that serve government, defense, healthcare, and finance customers."
+  sovereignCoreRelevance: "Provides hardware and platform options for running sovereign AI and infrastructure inside controlled environments, so customers keep ownership of their AI capabilities."
+  industries: ["sovereign_ai", "government", "healthcare", "bfsi"] # Taken from a Dell press release about Sovereign AI (EMEA), not a Dell industry list.
+  intendedUsers: ["AI engineers", "Platform engineers", "Infrastructure teams"]
+  category: "Server"
+  availabilityState: "discoverable_only"
+  lifecycleStatus: "approved"
+  storefrontVisibility: "public"
+spec:
+  jurisdiction:
+    hq: "USA"
+  capabilities:
+    overview: "Dell Technologies delivers comprehensive hardware, software, and IT service capabilities spanning personal computing, enterprise infrastructure, and artificial intelligence integration."
+  links:
+    productPageUrl: "https://www.dell.com/en-us/shop/artificial-intelligence/sc/sovereign-ai"

@@ -1,0 +1,218 @@
+# Shared definitions (YAML representation of JSON Schema) for all catalog schemas.
+# Single source of truth for enums and reusable types used across catalog schemas.
+# Reference them with $ref, e.g.:
+#   $ref: "https://sovereign-catalog.io/schemas/common-definitions/v1alpha1#/$defs/componentsCountryEnum"
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://sovereign-catalog.io/schemas/common-definitions/v1alpha1"
+title: CommonDefinitions
+description: >
+  Shared enum and type definitions referenced by the Sovereign Store catalog schemas.
+  Organized by where they are used:
+  (1) shared by company profiles and components,
+  (2) company profiles (profile.yaml),
+  (3) component `metadata` sections (metadata.yaml: software, hardware, AI model, service),
+  (4) component `spec` sections (metadata.yaml).
+$defs:
+  # ===========================================================================
+  # Shared Definitions
+  # Used by BOTH company profiles (profile.yaml `spec`) and components (metadata.yaml `spec`)
+  # ===========================================================================
+
+  certificationStatus:
+    type: string
+    enum:
+      - Active
+      - In Progress
+      - Expired
+    description: "Status of a compliance certification."
+
+  # ===========================================================================
+  # Company Profile Definitions
+  # Used only by company-profile-schema.yaml (companies/<slug>/profile.yaml)
+  # ===========================================================================
+
+  # Extends componentsCountryEnum (no duplicated list) with 'Global' for community or
+  # distributed organizations that have no single headquarters.
+  companyProfileCountryEnum:
+    anyOf:
+      - $ref: "#/$defs/componentsCountryEnum"
+      - const: Global
+    description: "Country name for a company profile headquarters: any componentsCountryEnum value, or 'Global' for community/distributed organizations with no single headquarters."
+
+  # ===========================================================================
+  # Component Metadata-Level Definitions
+  # Used across the `metadata` section of software, hardware, AI model and service
+  # metadata.yaml files
+  # ===========================================================================
+
+  industry:
+    type: string
+    enum:
+      - government
+      - bfsi
+      - healthcare
+      - telco
+      - energy
+      - sovereign_ai
+      - vmware_modernization
+      - manufacturing
+      - regulated_industries
+    description: "Target industry segment for catalog offerings."
+
+  lifecycleStatus:
+    type: string
+    enum:
+      - draft
+      - review
+      - approved
+      - deprecated
+      - retired
+    description: "Lifecycle state of a catalog entry."
+
+  storefrontVisibility:
+    type: string
+    enum:
+      - public
+      - unlisted
+      - private
+    description: "Visibility setting for storefront presentation."
+
+  availabilityState:
+    type: string
+    enum:
+      - available_central_it
+      - byop_ready
+      - technical_assets_available
+      - discoverable_only
+    description: "Semantic availability state for storefront display and fulfillment."
+
+  hardwareCategory:
+    type: string
+    enum:
+      - GPU
+      - CPU
+      - Storage
+      - Networking
+      - Server
+    description: "Category classification for hardware profiles."
+
+  softwareCategory:
+    type: string
+    enum:
+      - ai
+      - data
+      - security
+      - observability
+      - application_platform
+      - automation
+      - infrastructure
+    description: "Primary storefront category for software listings."
+
+  modelCategory:
+    type: string
+    enum:
+      - text_generation
+      - embeddings
+      - vision
+      - speech
+      - multimodal
+      - code_generation
+    description: "Primary capability category for AI model listings."
+
+  # ===========================================================================
+  # Component Spec-Level Definitions
+  # Used across the `spec` section of software, hardware, AI model and service
+  # metadata.yaml files
+  # ===========================================================================
+
+  # Base country list. Also the source for companyProfileCountryEnum.
+  componentsCountryEnum:
+    type: string
+    enum:
+      - USA
+      - UK
+      - France
+      - Germany
+      - India
+      - Canada
+      - Australia
+      - Japan
+      - Finland
+      - Belgium
+    description: "ISO/standard country name for the headquarters or operating jurisdiction of a catalog component (software, hardware, model, service)."
+
+  serviceType:
+    type: string
+    enum:
+      - Hosting
+      - AuditAndCompliance
+      - SystemIntegration
+      - ManagedOperations
+      - SecurityConsulting
+      - TrainingAndEnablement
+    description: "Service offering type classification."
+
+  modelFormat:
+    type: string
+    enum:
+      - Safetensors
+      - GGUF
+      - ONNX
+      - PyTorch
+      - TensorFlow
+    description: "Model weight serialization format."
+
+  deploymentFormat:
+    type: string
+    enum:
+      - Kubernetes
+      - VM
+      - BareMetal
+      - Operator
+    description: "Target deployment platform format."
+
+  csiAccessMode:
+    type: string
+    enum:
+      - ReadWriteOnce
+      - ReadWriteMany
+      - ReadOnlyMany
+    description: "Kubernetes CSI volume access modes."
+
+  podSecurityStandard:
+    type: string
+    enum:
+      - restricted
+      - baseline
+      - privileged
+    description: "Kubernetes Pod Security Standard level."
+
+  deploymentType:
+    type: string
+    enum:
+      - Helm
+      - Operator
+      - Kustomize
+      - Manifest
+      - OLM
+    description: "Software deployment delivery mechanism."
+
+  brokerType:
+    type: string
+    enum:
+      - platform
+    description: "Broker that serves this product."
+
+  sourceType:
+    type: string
+    enum:
+      - helm-registry
+      - helm-git
+    description: "Source repository type where the chart is fetched from."
+
+  targetType:
+    type: string
+    enum:
+      - helm-registry
+      - helm-git
+    description: "Target repository type where the chart is delivered."

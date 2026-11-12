@@ -41,7 +41,8 @@ spec:
     # [MANDATORY] Country/region where the company is legally headquartered
     # Used by customers to evaluate foreign extraterritorial law exposure
     # (e.g. US CLOUD Act, UK IPA).
-    # Allowed values: "USA" | "UK" | "France" | "Germany" | "India" | "Canada" | "Australia" | "Japan"
+    # Allowed values: "USA" | "UK" | "France" | "Germany" | "India" | "Canada" | "Australia" | "Japan" | "Finland" | "Belgium" | "Global"
+    # "Global" is for community/distributed organizations with no single HQ.
     corporateHQ: "<Country/Region>"
 
     # [RECOMMENDED] Country/region of the topmost owner in the corporate tree
@@ -63,7 +64,7 @@ spec:
   # Remove this block entirely if you have no certifications to declare.
   # Each entry requires both 'framework' and 'status'.
   #
-  # Allowed status values: Active | In Progress | Expired | Pending
+  # Allowed status values: Active | In Progress | Expired
   # Common framework values: ISO-27001, SOC2, BSI-C5, SecNumCloud,
   #                           Gaia-X-Label-Level-3, FedRAMP, IRAP
   certifications: []
