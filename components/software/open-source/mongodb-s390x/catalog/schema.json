@@ -26,7 +26,6 @@
     "vip.metallbAddressPool":                 {"type": "string"},
 
     "governance.namespaceLabel.enabled":     {"type": "boolean"},
-    "governance.namespaceLabel.controlOwner": {"type": "string"},
     "network.blockExternalServices":          {"type": "boolean"},
 
     "ssh.enabled":                            {"type": "boolean"},
@@ -41,7 +40,6 @@
 
     "vault.address":                          {"type": "string", "pattern": "^https://"},
     "vault.namespace":                        {"type": "string"},
-    "vault.port":                             {"type": "integer"},
     "vault.pkiMount":                         {"type": "string"},
     "vault.roleId":                           {"type": "string"},
     "vault.renewalRoleId":                    {"type": "string"},
