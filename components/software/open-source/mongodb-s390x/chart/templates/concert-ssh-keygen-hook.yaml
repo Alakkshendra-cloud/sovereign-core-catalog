@@ -27,6 +27,7 @@ Concert workflow:
   3. Concert retrieves the private key from the Secret to SSH into the VMs
      for compliance scans — no manual key distribution needed
 */}}
+{{- if and (include "mongodb-vm.val" (list . "ssh.enabled") | eq "true") (not .Values.concertSSHKeySecret) }}
 {{- $ns := .Values.namespaceOverride | default .Release.Namespace }}
 ---
 apiVersion: v1
@@ -40,6 +41,8 @@ metadata:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "-10"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -52,6 +55,8 @@ metadata:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "-10"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -68,6 +73,8 @@ metadata:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "-10"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -88,14 +95,17 @@ metadata:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "-5"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 spec:
   backoffLimit: 2
-  activeDeadlineSeconds: 120
+  activeDeadlineSeconds: 600
   template:
     metadata:
+      ## Deliberately NOT the instance selector labels: the instance NetworkPolicy
+      ## (egress-restricted) must not apply to this hook pod so it can reach the API server.
       labels:
         app.kubernetes.io/name: {{ include "mongodb-vm.name" . }}-keygen
-        app.kubernetes.io/instance: {{ include "mongodb-vm.fullname" . }}
         app.kubernetes.io/component: concert-keygen-hook
     spec:
       serviceAccountName: {{ include "mongodb-vm.fullname" . }}-keygen-sa
@@ -134,19 +144,16 @@ spec:
                 echo "Secret ${SECRET_NAME}-pub holds the Concert public key"
               }
 
-              # Idempotent — keep an existing keypair, just make sure the -pub Secret exists.
-              # KEYGEN_VERSION marks keypairs made by the current generator (5 = RSA 3072, PEM private key).
-              # Older keypairs (ed25519, ECDSA) are regenerated once.
-              KEYGEN_VERSION=5
-              EXISTING_VER=$(oc get secret "$SECRET_NAME" -n "$NAMESPACE" \
-                   -o jsonpath='{.metadata.annotations.concert\.sovcore\.ibm\.com/keygen-version}' 2>/dev/null || true)
-              EXISTING_PUB=$(oc get secret "$SECRET_NAME" -n "$NAMESPACE" \
-                   -o jsonpath='{.data.authorized_key}' 2>/dev/null \
-                   | base64 -d 2>/dev/null || true)
-              if echo "$EXISTING_PUB" | grep -q "^ssh-rsa " && [ "$EXISTING_VER" = "$KEYGEN_VERSION" ]; then
-                echo "Secret $SECRET_NAME already has a valid SSH public key — skipping keygen"
-                publish_pub "$EXISTING_PUB"
-                exit 0
+              # Fast-path idempotency check — if Secret already exists, publish pub key and exit immediately (< 1s)
+              if oc get secret "$SECRET_NAME" -n "$NAMESPACE" >/dev/null 2>&1; then
+                EXISTING_PUB=$(oc get secret "$SECRET_NAME" -n "$NAMESPACE" \
+                     -o jsonpath='{.data.authorized_key}' 2>/dev/null \
+                     | base64 -d 2>/dev/null || true)
+                if [ -n "$EXISTING_PUB" ]; then
+                  echo "Secret $SECRET_NAME already has a valid SSH public key — skipping keygen"
+                  publish_pub "$EXISTING_PUB"
+                  exit 0
+                fi
               fi
 
               # Generate an RSA 3072 keypair using Python stdlib only (no external deps).
@@ -311,4 +318,5 @@ spec:
                   '{"metadata":{"ownerReferences":[{"apiVersion":"v1","kind":"Secret","name":{{ $credsSecret | quote }},"uid":"'"$OWNER_UID"'","blockOwnerDeletion":false}]}}'
                 echo "Secret $s now owned by {{ $credsSecret }} (deleted with the instance)"
               done
+{{- end }}
 {{- end }}

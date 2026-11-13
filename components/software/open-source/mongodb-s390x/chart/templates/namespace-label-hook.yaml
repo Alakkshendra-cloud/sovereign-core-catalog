@@ -112,9 +112,10 @@ spec:
   activeDeadlineSeconds: 120
   template:
     metadata:
+      ## Deliberately NOT the instance selector labels: the instance NetworkPolicy
+      ## (egress-restricted) must not apply to this hook pod so it can reach the API server.
       labels:
         app.kubernetes.io/name: {{ include "mongodb-vm.name" . }}-ns-label
-        app.kubernetes.io/instance: {{ include "mongodb-vm.fullname" . }}
         app.kubernetes.io/component: ns-label-hook
     spec:
       serviceAccountName: {{ include "mongodb-vm.fullname" . }}-ns-label-sa
