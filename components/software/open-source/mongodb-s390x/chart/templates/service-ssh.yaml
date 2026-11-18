@@ -1,39 +1,41 @@
 {{- /*
-  service-ssh.yaml — SSH access for Concert compliance checks (port 22)
+  service-ssh.yaml — per-VM ClusterIP Services for SSH (port 22)
 
-  NodePort Service that forwards <any-node>:<ssh.nodePort> to VM 0's sshd on
-  port 22. externalTrafficPolicy: Local preserves the client source IP so the
-  NetworkPolicy ipBlock (ssh.concertSourceCidr) can match it.
+  One ClusterIP Service per VM, named <memberName>-ssh, selecting that VM's
+  virt-launcher pod by kubevirt.io/domain. ClusterIP only: nothing listens on
+  the node network, so nothing is reachable from outside the cluster.
 
-  Concert connects to <node running VM 0>:<ssh.nodePort> as cloud-user with the
-  key in secret mongodb-byop-s390x-concert-ssh. If VM 0 moves to another node,
-  update the Concert host (Local policy drops traffic on other nodes).
-
+  Consumers inside the cluster:
+    - the compliance checks Job (run-checks.sh) — uses the Service name
+    - `virtctl ssh` (virt-api port-forward) — uses the VMI, not the Service
   Rendered only when ssh.enabled=true.
 */ -}}
 {{- if include "mongodb-vm.val" (list . "ssh.enabled") | eq "true" }}
-{{- if not (include "mongodb-vm.val" (list . "ssh.concertSourceCidr")) }}
-{{- fail "ssh.concertSourceCidr must be set when ssh.enabled=true (the sc-x86 Concert source CIDR). Without it the SSH NetworkPolicy rule is not rendered and Concert SSH checks will time out." }}
+{{- $count := 1 }}
+{{- if include "mongodb-vm.val" (list . "ha.enabled") | eq "true" }}
+{{- $count = include "mongodb-vm.val" (list . "ha.replicaCount") | default "3" | int }}
 {{- end }}
+{{- range $i := until $count }}
+{{- $ctx := dict "Values" $.Values "Chart" $.Chart "Release" $.Release "index" $i }}
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "mongodb-vm.fullname" . }}-ssh
-  namespace: {{ .Values.namespaceOverride | default .Release.Namespace }}
+  name: {{ include "mongodb-vm.memberName" $ctx }}-ssh
+  namespace: {{ $.Values.namespaceOverride | default $.Release.Namespace }}
   labels:
-    {{- include "mongodb-vm.labels" . | nindent 4 }}
+    {{- include "mongodb-vm.labels" $ | nindent 4 }}
+    mongodb-vm/member-index: {{ $i | quote }}
   annotations:
-    {{- include "mongodb-vm.annotations" . | nindent 4 }}
+    {{- include "mongodb-vm.annotations" $ | nindent 4 }}
 spec:
-  type: NodePort
-  externalTrafficPolicy: Local
+  type: ClusterIP
   selector:
-    ## VM 0 only. memberName returns <fullname>-0 in HA mode, <fullname> standalone.
-    kubevirt.io/domain: {{ include "mongodb-vm.memberName" (dict "Values" .Values "Chart" .Chart "Release" .Release "index" 0) }}
+    kubevirt.io/domain: {{ include "mongodb-vm.memberName" $ctx }}
   ports:
     - name: ssh
       port: 22
       targetPort: 22
-      nodePort: {{ .Values.ssh.nodePort }}
       protocol: TCP
+{{- end }}
 {{- end }}
