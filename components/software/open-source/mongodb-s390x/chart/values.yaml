@@ -180,9 +180,6 @@ complianceChecks:
   schedule: "0 * * * *"
   ## Hard limit per run (seconds). The Job is killed past this.
   activeDeadlineSeconds: 1800
-  ## Pinned runner image with bash, ssh, curl and python3 (no oc needed).
-  ## Verified on sc-x86: ssh, curl and python3 present. Do not use :latest.
-  image: "registry.redhat.io/ansible-automation-platform/ee-minimal-rhel9:2.18.9-3"
 
 ## Service to expose MongoDB port within the cluster
 service:

@@ -14,16 +14,16 @@
   ha.replicaCount (or one VM when standalone), so a replica-count change takes
   effect on the next sync.
 
-  Rendered only when complianceChecks.enabled=true. complianceChecks.image must
-  be set to a pinned runner image with bash, ssh, curl and python3.
+  Rendered only when complianceChecks.enabled=true.
+
+  The runner image is pinned here, not in values.yaml, so it cannot be
+  overridden per environment. It must provide bash, ssh, curl and python3.
+  Verified on sc-x86. Do not use :latest.
 */ -}}
 {{- if include "mongodb-vm.val" (list . "complianceChecks.enabled") | eq "true" }}
 {{- $ns := .Values.namespaceOverride | default .Release.Namespace }}
 {{- $base := include "mongodb-vm.fullname" . }}
-{{- $image := include "mongodb-vm.val" (list . "complianceChecks.image") | default "" }}
-{{- if not $image }}
-{{- fail "complianceChecks.image must be set to a pinned runner image with bash, ssh, curl and python3." }}
-{{- end }}
+{{- $image := "registry.redhat.io/ansible-automation-platform/ee-minimal-rhel9:2.18.9-3" }}
 {{- $count := 1 }}
 {{- if include "mongodb-vm.val" (list . "ha.enabled") | eq "true" }}
 {{- $count = include "mongodb-vm.val" (list . "ha.replicaCount") | default "3" | int }}
