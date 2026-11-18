@@ -600,20 +600,6 @@ write_files:
       {{ $rsyslogCustom | nindent 6 }}
     permissions: '0640'
   {{- end }}
-  ## mdb-aud-03 (iscf-gov-01 / iscf-ai-13): 91-day retention (weekly x 13).
-  ## The compliance check reads this rule and requires rotate >= 13.
-  - path: /etc/logrotate.d/mongodb
-    permissions: '0644'
-    owner: root:root
-    content: |
-      /var/log/mongodb/*.log {
-          weekly
-          rotate 13
-          compress
-          missingok
-          notifempty
-          copytruncate
-      }
   {{- $ntpServer := include "mongodb-vm.val" (list . "ntp.server") }}
   {{- if $ntpServer }}
   ## mdb-vm-01 (iscf-mi-03): site-specific NTP server (chrony drop-in)
@@ -627,8 +613,6 @@ runcmd:
   {{- if $ntpServer }}
   - systemctl restart chronyd || true
   {{- end }}
-  ## mdb-aud-03: the log directory must exist before mongod writes to it.
-  ## /var/log/mongodb is created with mongod:mongod ownership by the image.
   {{- if $vb.enabled }}
   ## Phase 3 (mdb-enc-01): reload systemd (the TLS drop-ins above were just
   ## written by write_files), then fetch the TLS certificate BEFORE
@@ -920,20 +904,6 @@ write_files:
       {{ $rsyslogCustom | nindent 6 }}
     permissions: '0640'
   {{- end }}
-  ## mdb-aud-03 (iscf-gov-01 / iscf-ai-13): 91-day retention (weekly x 13).
-  ## The compliance check reads this rule and requires rotate >= 13.
-  - path: /etc/logrotate.d/mongodb
-    permissions: '0644'
-    owner: root:root
-    content: |
-      /var/log/mongodb/*.log {
-          weekly
-          rotate 13
-          compress
-          missingok
-          notifempty
-          copytruncate
-      }
   {{- $ntpServer := include "mongodb-vm.val" (list . "ntp.server") }}
   {{- if $ntpServer }}
   ## mdb-vm-01 (iscf-mi-03): site-specific NTP server (chrony drop-in)
@@ -947,8 +917,6 @@ runcmd:
   {{- if $ntpServer }}
   - systemctl restart chronyd || true
   {{- end }}
-  ## mdb-aud-03: the log directory must exist before mongod writes to it.
-  ## /var/log/mongodb is created with mongod:mongod ownership by the image.
   {{- if $vb.enabled }}
   ## Phase 3 (mdb-enc-01): reload systemd (the TLS drop-ins above were just
   ## written by write_files), then fetch THIS member's TLS certificate.

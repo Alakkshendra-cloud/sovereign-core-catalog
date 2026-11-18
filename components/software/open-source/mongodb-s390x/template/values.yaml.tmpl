@@ -86,10 +86,11 @@ governance:
 network:
   blockExternalServices: {{ network.blockExternalServices | default(false) }}
 
-## SSH access (ClusterIP only) and the hourly in-cluster compliance checks
+## SSH access for Concert compliance checks (NodePort 30022 -> VM 0 :22)
 ssh:
   enabled: {{ ssh.enabled | default(true) }}
-  nodeCidr: "{{ ssh.nodeCidr | default('192.168.150.0/24') }}"
+  nodePort: {{ ssh.nodePort | default(30022) }}
+  concertSourceCidr: "{{ ssh.concertSourceCidr | default('') }}"
 
 ## Compliance — mongod.conf hardening (Phase 2 + Phase 3 TLS)
 compliance:
