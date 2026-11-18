@@ -99,12 +99,22 @@ diskImage:
   ## Secret name in the same namespace containing registry credentials for CDI.
   ## Must have keys: accessKeyId (username) and secretKey (password).
   ## Leave empty if the registry is unauthenticated.
+  ## The pre-sync hook automatically extracts credentials from openshift-config/pull-secret
+  ## into this secret if it does not already exist in the target namespace.
   pullSecret: "quay-pull-secret"
+  ## Optional inline registry credentials (plain "username:password", dockerconfigjson, or JSON).
+  ## If provided, the pre-sync hook creates pullSecret using this data instead of
+  ## extracting from openshift-config/pull-secret.
+  pullSecretData: ""
   ## ConfigMap name in the same namespace containing the registry CA certificate.
   ## Must have key: ca.crt  (PEM-encoded CA cert that signed the registry TLS cert).
   ## CDI uses this to verify the registry TLS connection during image import.
-  ## Leave empty to rely on the cluster-wide proxy trust bundle instead.
+  ## The pre-sync hook automatically extracts the cluster/registry CA from
+  ## openshift-config/user-ca-bundle or openshift-ingress/router-ca if missing.
   certConfigMap: "quay-ca-bundle"
+  ## Optional inline PEM-encoded registry CA certificate.
+  ## If provided, the pre-sync hook creates certConfigMap using this certificate.
+  caCert: ""
   ## Storage class for the VM boot PVC (must support RWO block on s390x).
   ##
   ## COMPLIANCE — Phase 1 — mdb-enc-05 → iscf-dr-01 · iscf-dr-05 · iscf-dr-06

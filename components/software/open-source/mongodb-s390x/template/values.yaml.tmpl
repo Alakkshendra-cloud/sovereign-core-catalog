@@ -24,8 +24,15 @@ diskImage:
 {% if diskImage.pullSecret is defined and diskImage.pullSecret %}
   pullSecret: "{{ diskImage.pullSecret }}"
 {% endif %}
+{% if diskImage.pullSecretData is defined and diskImage.pullSecretData %}
+  pullSecretData: "{{ diskImage.pullSecretData }}"
+{% endif %}
 {% if diskImage.certConfigMap is defined and diskImage.certConfigMap %}
   certConfigMap: "{{ diskImage.certConfigMap }}"
+{% endif %}
+{% if diskImage.caCert is defined and diskImage.caCert %}
+  caCert: |
+    {{ diskImage.caCert | indent(4) }}
 {% endif %}
   storageClassName: "{{ diskImage.storageClassName | default('ocs-storagecluster-ceph-rbd-virtualization') }}"
   diskSizeGi: {{ diskImage.diskSizeGi | default(25) }}
@@ -86,10 +93,18 @@ governance:
 network:
   blockExternalServices: {{ network.blockExternalServices | default(false) }}
 
-## SSH access (ClusterIP only) and the hourly in-cluster compliance checks
+## SSH access (ClusterIP only)
 ssh:
   enabled: {{ ssh.enabled | default(true) }}
-  nodeCidr: "{{ ssh.nodeCidr | default('192.168.150.0/24') }}"
+{% if ssh.nodeCidr is defined and ssh.nodeCidr %}
+  nodeCidr: "{{ ssh.nodeCidr }}"
+{% endif %}
+
+## In-cluster compliance checks (hourly Job reporting to ConfigMap)
+complianceChecks:
+  enabled: {{ complianceChecks.enabled | default(true) }}
+  schedule: "{{ complianceChecks.schedule | default('0 * * * *') }}"
+  activeDeadlineSeconds: {{ complianceChecks.activeDeadlineSeconds | default(1800) }}
 
 ## Compliance — mongod.conf hardening (Phase 2 + Phase 3 TLS)
 compliance:

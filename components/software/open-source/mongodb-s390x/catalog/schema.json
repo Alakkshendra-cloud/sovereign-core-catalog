@@ -28,7 +28,6 @@
     "network.blockExternalServices":          {"type": "boolean"},
 
     "ssh.enabled":                            {"type": "boolean"},
-    "ssh.nodeCidr":                           {"type": "string"},
 
     "compliance.enableEncryption":            {"type": "boolean"},
     "compliance.auditLog.enabled":            {"type": "boolean"},

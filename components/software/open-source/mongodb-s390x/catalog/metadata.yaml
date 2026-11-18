@@ -1,6 +1,6 @@
 sourceType: helm-registry
 sourceRepo: oci://quay.io/mongodbhelm/mongodb-vm
-sourceVersion: "1.1.36"
+sourceVersion: "1.1.41"
 name: mongodbvm
 # images list:
 # - 'source' is a placeholder for the boot disk container image that the customer/vendor
