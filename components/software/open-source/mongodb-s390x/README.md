@@ -73,7 +73,7 @@ The listing in `catalog/` defines the `MongoDB Enterprise Advanced VM s390x` ser
 | Parameter | Required | Notes |
 |---|---|---|
 | `clusterTarget` | yes | ArgoCD cluster name to deploy to |
-| `namespace` | yes | Target namespace, default `mongodb-s390x` |
+| `namespace` | no | Not a user input. The namespace is the tenant ID (`tenantId`, falling back to the account ID) |
 | `instanceName` | yes | Unique instance name prefix |
 | `diskImage.sourceContainerDisk` | yes | ContainerDisk image reference in registry |
 | `mongodb.databaseName` | yes | Initial database name |

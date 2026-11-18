@@ -3,7 +3,6 @@
   "type": "object",
   "properties": {
     "clusterTarget":                          {"type": "string"},
-    "namespace":                              {"type": "string"},
     "instanceName":                           {"type": "string"},
 
     "diskImage.sourceContainerDisk":          {"type": "string"},
@@ -59,7 +58,6 @@
   },
   "required": [
     "clusterTarget",
-    "namespace",
     "instanceName",
     "diskImage.sourceContainerDisk",
     "mongodb.databaseName",

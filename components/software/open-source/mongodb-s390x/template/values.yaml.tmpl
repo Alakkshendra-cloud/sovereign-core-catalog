@@ -3,7 +3,9 @@
 # Schema: catalog/schema.json (flat dot-notation keys)
 
 nameOverride: "{{ instanceName }}"
-namespaceOverride: "{{ namespace }}"
+## Namespace is the tenant ID, not a user input (isolation, CLOUDPAKS-5029).
+## Same source as governance.namespaceLabel.tenantId below.
+namespaceOverride: "{{ tenantId | default(context.account_id | default('')) }}"
 
 ## Boot disk — CDI DataVolume source
 diskImage:

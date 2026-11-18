@@ -127,6 +127,12 @@ app.kubernetes.io/name: {{ include "mongodb-vm.name" . }}
 app.kubernetes.io/instance: {{ include "mongodb-vm.fullname" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- /* The deployment namespace IS the tenant ID, so default to it. Matches the namespace label set by the ns-label hook. */}}
+{{- $tenantId := include "mongodb-vm.val" (list . "governance.namespaceLabel.tenantId") | default (.Values.namespaceOverride | default .Release.Namespace) }}
+{{- if $tenantId }}
+sovereign.cloud.ibm.com/account-id: {{ $tenantId | quote }}
+sovcore.byop.ibm.com/account-id: {{ $tenantId | quote }}
+{{- end }}
 {{- with .Values.commonLabels }}
 {{ toYaml . }}
 {{- end }}

@@ -137,14 +137,21 @@ spec:
             - /bin/sh
             - -c
             - |
-              oc label namespace "$(NAMESPACE)" \
+              # The tenant owns the namespace named after its ID, so the account-id label
+              # defaults to the namespace name. Never re-label a namespace that already
+              # belongs to a different tenant.
+              ACCOUNT_ID={{ .Values.governance.namespaceLabel.tenantId | default (.Values.namespaceOverride | default .Release.Namespace) | quote }}
+              CURRENT=$(oc get namespace "$NAMESPACE" -o jsonpath='{.metadata.labels.sovereign\.cloud\.ibm\.com/account-id}')
+              if [ -n "$CURRENT" ] && [ "$CURRENT" != "$ACCOUNT_ID" ]; then
+                echo "mdb-gov-01: namespace $NAMESPACE already belongs to tenant $CURRENT, refusing to relabel it as $ACCOUNT_ID" >&2
+                exit 1
+              fi
+              oc label namespace "$NAMESPACE" \
                 "sovereignty/control-owner={{ .Values.governance.namespaceLabel.controlOwner }}" \
                 "openshift.io/user-monitoring=true" \
-                {{- if .Values.governance.namespaceLabel.tenantId }}
-                "sovereign.cloud.ibm.com/account-id={{ .Values.governance.namespaceLabel.tenantId }}" \
-                {{- end }}
+                "sovereign.cloud.ibm.com/account-id=$ACCOUNT_ID" \
                 --overwrite
-              echo "mdb-gov-01: namespace $(NAMESPACE) labelled sovereignty/control-owner={{ .Values.governance.namespaceLabel.controlOwner }} openshift.io/user-monitoring=true{{- if .Values.governance.namespaceLabel.tenantId }} sovereign.cloud.ibm.com/account-id={{ .Values.governance.namespaceLabel.tenantId }}{{- end }}"
+              echo "mdb-gov-01: namespace $NAMESPACE labelled sovereignty/control-owner={{ .Values.governance.namespaceLabel.controlOwner }} openshift.io/user-monitoring=true sovereign.cloud.ibm.com/account-id=$ACCOUNT_ID"
           env:
             - name: NAMESPACE
               valueFrom:

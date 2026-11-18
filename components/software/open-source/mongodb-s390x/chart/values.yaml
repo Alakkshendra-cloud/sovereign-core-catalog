@@ -314,11 +314,13 @@ serviceAccount:
 ##   Default: "tenant" (standard sovereign boundary designation).
 ##
 ## namespaceLabel.tenantId:
-##   Owning tenant (storage account) of the namespace. When set, the hook also
-##   applies sovereign.cloud.ibm.com/account-id=<tenantId>, which the spoke
-##   admission policy uses to restrict the namespace to its own tenant's
-##   StorageClass. Passed by the BYOP broker (template variable tenantId).
-##   Default: "" (label not applied).
+##   Owning tenant (storage account) of the namespace. The hook always applies
+##   sovereign.cloud.ibm.com/account-id, which the spoke admission policy uses
+##   to restrict the namespace to its own tenant's StorageClass. The deployment
+##   namespace IS the tenant ID, so when this is empty the label value is the
+##   namespace name. The hook fails instead of relabelling a namespace that
+##   already carries a different account-id.
+##   Default: "" (use the namespace name).
 ## ─────────────────────────────────────────────────────────────────────────────
 governance:
   namespaceLabel:
