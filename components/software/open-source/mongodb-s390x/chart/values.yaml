@@ -25,18 +25,16 @@
 #   compliance.tls.*    → mdb-enc-01 (iscf-cr-03/dr-07/ai-03)
 #                          mdb-auth-03 (iscf-cr-03/dr-07)
 #
+# VM-level checks run by the in-cluster CronJob (templates/compliance-checks.yaml,
+# files/run-checks.sh, files/vm_checks.sh). Results go to <fullname>-compliance-results:
+#   mdb-auth-01, mdb-auth-02, mdb-enc-02, mdb-enc-03, mdb-aud-01, mdb-aud-02,
+#   mdb-aud-03, mdb-net-01, mdb-rbac-01, mdb-rbac-02, mdb-virt-03, mdb-s390x-01
+#
 # Controls that require external tooling (NOT in this chart):
-#   mdb-auth-02  no anonymous access          → RHACS policy
-#   mdb-enc-03   key rotation < 365 days      → RHACS + KMIP/Vault
 #   mdb-enc-06   KMIP key server configured   → cluster-level infra
-#   mdb-aud-03   log retention >= 90 days     → Compliance Operator
-#   mdb-rbac-01  least-privilege DB roles     → RHACS DB user scan
-#   mdb-rbac-02  no root role in production   → RHACS role scan
 #   mdb-rbac-04  VM RBAC approved users only  → Compliance Operator
 #   mdb-virt-01  virt-launcher non-root       → OCP Virt platform default
 #   mdb-virt-02  boot image signed            → RHACS image sig policy
-#   mdb-virt-04  guest OS CIS hardened        → RHACS CIS RHEL policy
-#   mdb-s390x-02 CPACF hardware crypto        → Script → Concert API
 # ─────────────────────────────────────────────────────────────────────────────
 
 ## Common labels applied to all resources
@@ -159,18 +157,32 @@ ha:
 ## Namespace where the VM will be deployed
 namespaceOverride: ""
 
-## ── SSH access for Concert compliance checks (port 22) ───────────────────────
-## Rendered by: templates/service-ssh.yaml (NodePort, VM 0 only)
-## Ingress allowed by: templates/networkpolicy.yaml (ssh.concertSourceCidr only)
-## Concert host = InternalIP of the node running VM 0; port = ssh.nodePort.
-## Requires network.blockExternalServices=false (Kyverno rejects NodePort).
+## ── SSH access on port 22 (ClusterIP only, nothing on the node network) ─────
+## Rendered by: templates/service-ssh.yaml (one ClusterIP Service per VM)
+## Ingress allowed by: templates/networkpolicy.yaml
+##   - the compliance checks Job (app.kubernetes.io/component=compliance-checks)
+##   - ssh.nodeCidr, where virt-handler carries `virtctl ssh` port-forwards
+## Users reach a VM with: virtctl ssh -n <ns> cloud-user@vmi/<name>
 ssh:
   enabled: true
-  ## NodePort in range 30000-32767, forwards to VM 0 port 22.
-  nodePort: 30022
-  ## Source CIDR of Concert (sc-x86 egress). Empty = no SSH rule rendered.
-  ## REQUIRED before rollout. Set per environment.
-  concertSourceCidr: ""
+  ## Node network CIDR that virt-handler uses for port-forwards to the VMs.
+  ## Verify on the cluster before relying on it.
+  nodeCidr: "192.168.150.0/24"
+
+## ── Compliance checks (in-cluster Job, results in a ConfigMap) ───────────────
+## Rendered by: templates/compliance-checks.yaml, runner in files/run-checks.sh.
+## The CronJob runs the 12 VM checks against every VM in the release and writes
+## the results to <fullname>-compliance-results. Concert reads that ConfigMap
+## through the cluster API; it never SSHes to the VMs itself.
+complianceChecks:
+  enabled: true
+  ## Cron schedule (UTC): hourly.
+  schedule: "0 * * * *"
+  ## Hard limit per run (seconds). The Job is killed past this.
+  activeDeadlineSeconds: 1800
+  ## Pinned runner image with bash, ssh, curl and python3 (no oc needed).
+  ## Verified on sc-x86: ssh, curl and python3 present. Do not use :latest.
+  image: "registry.redhat.io/ansible-automation-platform/ee-minimal-rhel9:2.18.9-3"
 
 ## Service to expose MongoDB port within the cluster
 service:
@@ -239,9 +251,8 @@ vip:
 ##
 ## Default: true (opt-out pattern — compliance on by default).
 ##
-## Controls NOT covered by this NetworkPolicy (external tooling required):
-##   mdb-auth-02  no anonymous DB access   → RHACS policy
-##   mdb-rbac-01  least-privilege DB roles → RHACS DB user scan
+## mdb-auth-02 and mdb-rbac-01 are checked by the in-cluster compliance CronJob
+## (not by this NetworkPolicy). See the compliance checks section below.
 ## ─────────────────────────────────────────────────────────────────────────────
 networkPolicy:
   enabled: true
@@ -289,9 +300,8 @@ network:
 ## Default: true (opt-out pattern — compliance on by default).
 ##
 ## Controls NOT covered here (external tooling required):
-##   mdb-rbac-01  least-privilege MongoDB DB roles → RHACS DB user scan
-##   mdb-rbac-02  no root role in production       → RHACS role scan
 ##   mdb-rbac-04  VM RBAC approved users only      → Compliance Operator
+## (mdb-rbac-01 and mdb-rbac-02 are checked by the in-cluster compliance CronJob.)
 ## ─────────────────────────────────────────────────────────────────────────────
 serviceAccount:
   enabled: true
@@ -358,8 +368,8 @@ governance:
 ##   Default: /var/log/mongodb/audit.json
 ##
 ## Log retention (mdb-aud-03 → iscf-gov-01 · iscf-ai-13):
-##   Enforced externally by Compliance Operator (log volume + retention policy).
-##   NOT controlled by this chart.
+##   Checked by the in-cluster compliance CronJob (files/vm_checks.sh).
+##   Retention policy itself is NOT set by this chart.
 ##
 ## tls (Phase 3 — Vault PKI):
 ##   Control: mdb-enc-01 → iscf-cr-03 · iscf-dr-07 · iscf-ai-03

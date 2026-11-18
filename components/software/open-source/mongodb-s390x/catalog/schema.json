@@ -28,8 +28,7 @@
     "network.blockExternalServices":          {"type": "boolean"},
 
     "ssh.enabled":                            {"type": "boolean"},
-    "ssh.nodePort":                           {"type": "integer", "minimum": 30000, "maximum": 32767},
-    "ssh.concertSourceCidr":                  {"type": "string"},
+    "ssh.nodeCidr":                           {"type": "string"},
 
     "compliance.enableEncryption":            {"type": "boolean"},
     "compliance.auditLog.enabled":            {"type": "boolean"},
@@ -62,7 +61,6 @@
     "diskImage.sourceContainerDisk",
     "mongodb.databaseName",
     "mongodb.databaseUser",
-    "ha.enabled",
-    "ssh.concertSourceCidr"
+    "ha.enabled"
   ]
 }

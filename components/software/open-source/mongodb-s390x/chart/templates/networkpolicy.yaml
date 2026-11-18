@@ -26,9 +26,6 @@
   Covers both standalone and HA (all replica-set member virt-launcher pods).
 
   ── Controls NOT covered here (external tooling required) ────────────────────
-  mdb-auth-02  no anonymous DB access     → RHACS policy (users collection scan)
-  mdb-rbac-01  least-privilege DB roles   → RHACS DB user scan
-  mdb-enc-03   key rotation < 365 days    → RHACS + KMIP/Vault
   mdb-virt-01  virt-launcher non-root     → OCP Virt platform default
 
   ── Phase 3 note ─────────────────────────────────────────────────────────────
@@ -65,14 +62,18 @@ spec:
       ports:
         - port: {{ .Values.service.port }}
           protocol: TCP
-    ## SSH (port 22) from the Concert source CIDR only (sc-x86 egress).
-    ## Rendered only when ssh.enabled=true AND ssh.concertSourceCidr is set.
-    ## With no CIDR, no SSH rule is rendered and SSH is unreachable.
-    {{- $sshCidr := include "mongodb-vm.val" (list . "ssh.concertSourceCidr") }}
-    {{- if and (include "mongodb-vm.val" (list . "ssh.enabled") | eq "true") $sshCidr }}
+    ## SSH (port 22), in-namespace only. Two sources:
+    ##   - the compliance checks Job (app.kubernetes.io/component=compliance-checks)
+    ##   - the node network, where virt-handler terminates `virtctl ssh`
+    ##     port-forwards for end users. Source IP not yet verified on the cluster.
+    ## Nothing outside the cluster can reach port 22.
+    {{- if include "mongodb-vm.val" (list . "ssh.enabled") | eq "true" }}
     - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: compliance-checks
         - ipBlock:
-            cidr: {{ $sshCidr | quote }}
+            cidr: {{ include "mongodb-vm.val" (list . "ssh.nodeCidr") | default "192.168.150.0/24" | quote }}
       ports:
         - port: 22
           protocol: TCP
@@ -175,4 +176,49 @@ spec:
           protocol: TCP
     ## mdb-net-04: all other egress blocked — only DNS + HTTPS + internal registry
     ## + Vault (TLS deployments, port 8200) + RS peer port + probe port allowed.
+{{- end }}
+{{- if include "mongodb-vm.val" (list . "complianceChecks.enabled") | eq "true" }}
+---
+## Compliance checks runner only. Its own policy, so the VM policy above is
+## unchanged. Egress: DNS, ssh (22) to the VM pods in this namespace, and the
+## API server (6443) for the ConfigMap PATCH. Ingress: none.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "mongodb-vm.fullname" . }}-compliance-checks
+  namespace: {{ .Values.namespaceOverride | default .Release.Namespace }}
+  labels:
+    {{- include "mongodb-vm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: compliance-checks
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: compliance-checks
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - port: 5353
+          protocol: UDP
+        - port: 5353
+          protocol: TCP
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ include "mongodb-vm.fullname" . }}
+      ports:
+        - port: 22
+          protocol: TCP
+    - ports:
+        - port: 6443
+          protocol: TCP
 {{- end }}
